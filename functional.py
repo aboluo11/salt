@@ -24,7 +24,7 @@ def rl_enc(img):
     res[1::2] = length
     return ' '.join(str(x) for x in res)
 
-def iou(predict, target, threshold):
+def score(predict, target, threshold):
     """return a batch of images' score at threshold t
     """
     predict, target = predict.view(-1,101*101), target.view(-1,101*101)
@@ -37,7 +37,7 @@ def iou(predict, target, threshold):
     percentage = percentage.expand(-1,10)
     return torch.sum(percentage>metric,dim=1).float()/10
 
-def thres_iou(model, val_dl):
+def thres_score(model, val_dl):
     thresholds = np.linspace(0,1,num=100,endpoint=False)
     res = []
     with torch.no_grad():
