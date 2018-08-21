@@ -28,7 +28,7 @@ class Dynamic(nn.Module):
         for m in encoder.children():
             handle = m.register_forward_pre_hook(hook_fn)
             self.handles.append(handle)
-        self.dummy_forward(T(np.transpose(ds[[0]][0],axes=[0,3,1,2]), cuda=False))
+        self.dummy_forward(T(np.transpose(ds[0][0],axes=[2,0,1]), cuda=False).unsqueeze(0))
 
     def forward(self,x):
         x = self.encoder(x)
@@ -42,7 +42,8 @@ class Dynamic(nn.Module):
         return [self.encoder,[self.upmodel,self.final_conv]]
 
     def dummy_forward(self,x):
-        x = self.encoder(x)
+        with torch.no_grad():
+            x = self.encoder(x)
         upmodel = []
         for i in reversed(range(len(self.features))):
             feature = self.features[i]
