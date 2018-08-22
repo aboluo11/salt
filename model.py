@@ -28,7 +28,7 @@ class Dynamic(nn.Module):
         for m in encoder.children():
             handle = m.register_forward_pre_hook(hook_fn)
             self.handles.append(handle)
-        self.dummy_forward(T(np.transpose(ds[0][0],axes=[2,0,1]), cuda=False).unsqueeze(0))
+        self.dummy_forward(T(ds[0][0], cuda=False).unsqueeze(0))
 
     def forward(self,x):
         x = self.encoder(x)
@@ -39,7 +39,7 @@ class Dynamic(nn.Module):
         return x
         
     def get_layer_groups(self):
-        return [self.encoder,[self.upmodel,self.final_conv]]
+        return [[self.encoder],[self.upmodel,self.final_conv]]
 
     def dummy_forward(self,x):
         with torch.no_grad():

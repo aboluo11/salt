@@ -1,11 +1,5 @@
 from lightai.imps import *
 
-def batch_tsfm(x):
-    img, mask = x
-    img = np.transpose(img,axes=[0,3,1,2])
-    img -= img.mean(axis=(0,2,3),keepdims=True)
-    return img, mask
-
 def compose(tsfms):
     def f(sample):
         for t in tsfms:
@@ -13,11 +7,22 @@ def compose(tsfms):
         return sample
     return f
 
-def to_unit_float(sample):
+def transpose(sample):
     img,mask = sample
-    img = np.asarray(img).astype(np.float32)/255
-    mask = np.asarray(mask).astype(np.float32)/255
+    img = np.transpose(img, [2,0,1])
     return [img,mask]
+
+class Normalize:
+    def __init__(self):
+        self.mean = np.array([0.485, 0.456, 0.406])
+        self.std = np.array([0.229, 0.224, 0.225])
+
+    def __call__(self,sample):
+        img,mask = sample
+        img = np.asarray(img).astype(np.float32)/255
+        mask = np.asarray(mask).astype(np.float32)/255
+        img = (img-self.mean)/self.std
+        return [img,mask]
 
 class Hflip:
     def __init__(self,p):
