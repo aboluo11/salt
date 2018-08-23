@@ -7,15 +7,19 @@ def compose(tsfms):
         return sample
     return f
 
-def transpose(sample):
+def unsqueeze(sample):
     img,mask = sample
-    img = np.transpose(img, [2,0,1])
+    img = np.expand_dims(img, 0)
     return [img,mask]
 
 class Normalize:
-    def __init__(self):
-        self.mean = np.array([0.485, 0.456, 0.406])
-        self.std = np.array([0.229, 0.224, 0.225])
+    def __init__(self, pretrain):
+        if pretrain:
+            self.mean = np.array([0.485, 0.456, 0.406]).mean()
+            self.std = np.array([0.229, 0.224, 0.225]).mean()
+        else:
+            self.mean = np.array(0.47146264)
+            self.std = np.array(0.1610698)
 
     def __call__(self,sample):
         img,mask = sample

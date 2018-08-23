@@ -68,6 +68,15 @@ def thres_score(model, val_dl):
             res.append(torch.stack(batch_res))
     return thresholds,np.array(torch.cat(res,dim=1).mean(dim=1))
 
+def cal_mean_std(trn_dl):
+    total = []
+    for img, mask in trn_dl:
+        total.append(img)
+    total = np.concatenate(total)
+    mean = total.mean((0,2,3))
+    std = total.std((0,2,3))
+    return mean,std
+
 def visualize(ds, id):
     _, ax = plt.subplots(1,2)
     img, mask = ds[id]
