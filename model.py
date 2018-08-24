@@ -1,4 +1,5 @@
 from lightai.imps import *
+from functional import *
 
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
@@ -47,14 +48,15 @@ class BasicBlock(nn.Module):
         return out
 
 class ResNet(nn.Module):
-
     def __init__(self, block, layers, num_classes=1000):
         self.inplanes = 64
         super(ResNet, self).__init__()
-        self.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3,
+        self.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=1, padding=3,
                                bias=False)
         self.bn1 = nn.BatchNorm2d(64)
-        self.relu = nn.ReLU(inplace=True)
+        self.conv2 = nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1,
+                               bias=False)
+        self.bn2 = nn.BatchNorm2d(64)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.layer1 = self._make_layer(block, 64, layers[0])
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
@@ -89,8 +91,11 @@ class ResNet(nn.Module):
 
     def forward(self, x):
         x = self.conv1(x)
+        x = F.relu(inplace=True)
         x = self.bn1(x)
-        x = self.relu(x)
+        x = self.conv2(x)
+        x = F.relu(inplace=True)
+        x = self.bn2(x)
         x = self.maxpool(x)
 
         x = self.layer1(x)
@@ -123,31 +128,37 @@ class UnetBlock(nn.Module):
         output channel size: feature_c
         """
         super().__init__()
-        self.upconv = nn.ConvTranspose2d(x_c, feature_c, kernel_size=3, stride=2, padding=1)
-        self.conv1 = nn.Conv2d(feature_c*2, feature_c, kernel_size=3, stride=1, padding=1)
-        self.conv2 = nn.Conv2d(feature_c, feature_c, kernel_size=3, stride=1, padding=1)
-        self.bn = nn.BatchNorm2d(feature_c)
+        self.upconv1 = nn.ConvTranspose2d(x_c, feature_c, kernel_size=3, stride=2, padding=1, bias=False)
+        self.conv1 = nn.Conv2d(feature_c*2, feature_c, kernel_size=3, stride=1, padding=1, bias=False)
+        # self.conv2 = nn.Conv2d(feature_c, feature_c, kernel_size=3, stride=1, padding=1, bias=False)
+        self.upconv2 = nn.ConvTranspose2d(x_c, feature_c, kernel_size=3, stride=2, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(2*feature_c)
+        self.bn2 = nn.BatchNorm2d(feature_c)
+        self.bn3 = nn.BatchNorm2d(feature_c)
+        # self.bn4 = nn.BatchNorm2d(feature_c)
         
     def forward(self, feature, x):
-        x = self.upconv(x,output_size=feature.shape)
-        x = torch.cat([x, feature], dim=1)
-        x = torch.relu(self.conv1(x))
-        x = torch.relu(self.conv2(x))
-        return self.bn(x)
+        out = self.upconv1(x,output_size=feature.shape)
+        out = self.bn1(torch.relu(torch.cat([out, feature], dim=1)))
+        # out = self.bn2(torch.relu(self.conv1(out)))
+        out = self.bn2(torch.relu(self.conv1(out))) + self.bn3(torch.relu(self.upconv2(x,output_size=feature.shape)))
+        return out
 
 class Dynamic(nn.Module):
     def __init__(self, encoder, ds):
         super().__init__()
+        self.bn_input = nn.BatchNorm2d(1)
         self.encoder = encoder
         self.features = []
         self.handles = []
         hook_fn = lambda module,input:self.features.append(input[0])
-        for m in encoder.children():
+        for m in leaves(encoder):
             handle = m.register_forward_pre_hook(hook_fn)
             self.handles.append(handle)
         self.dummy_forward(T(ds[0][0], cuda=False).unsqueeze(0))
 
     def forward(self,x):
+        x = self.bn_input(x)
         x = self.encoder(x)
         for feature,block in zip(reversed(self.features),self.upmodel):
             x = block(feature,x)

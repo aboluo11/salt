@@ -77,6 +77,17 @@ def cal_mean_std(trn_dl):
     std = total.std((0,2,3))
     return mean,std
 
+def leaves(model):
+    res = []
+    childs = children(model)
+    if len(childs) == 0:
+        return [model]
+    for key, module in model._modules.items():
+        if key == 'downsample' or key == 'relu':
+            continue
+        res += leaves(module)
+    return res
+
 def visualize(ds, id):
     _, ax = plt.subplots(1,2)
     img, mask = ds[id]

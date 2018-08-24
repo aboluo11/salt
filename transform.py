@@ -12,6 +12,20 @@ def unsqueeze(sample):
     img = np.expand_dims(img, 0)
     return [img,mask]
 
+def apply_to_img(tsfm):
+    def res(sample):
+        img, mask = sample
+        img = tsfm(img)
+        return [img,mask]
+    return res
+
+def to_np(sample):
+    img, mask = sample
+    img = np.asarray(img).astype(np.float32)/255
+    mask = np.asarray(mask).astype(np.float32)/255
+    img = np.expand_dims(img, 0)
+    return img, mask
+
 class Normalize:
     def __init__(self, pretrain):
         if pretrain:
