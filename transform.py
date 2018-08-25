@@ -1,6 +1,8 @@
 from lightai.imps import *
+from torchvision.transforms import *
+import torchvision.transforms
 
-def compose(tsfms):
+def compose(*tsfms):
     def f(sample):
         for t in tsfms:
             sample = t(sample)
@@ -26,41 +28,49 @@ def to_np(sample):
     img = np.expand_dims(img, 0)
     return img, mask
 
-class Normalize:
-    def __init__(self, pretrain):
-        if pretrain:
-            self.mean = np.array([0.485, 0.456, 0.406]).mean()
-            self.std = np.array([0.229, 0.224, 0.225]).mean()
-        else:
-            self.mean = np.array(0.47146264)
-            self.std = np.array(0.1610698)
+class MyRandomApply:
+    def __init__(self, tsfms, p):
+        self.tsfms = tsfms
+        self.p = p
 
-    def __call__(self,sample):
-        img,mask = sample
-        img = np.asarray(img).astype(np.float32)/255
-        mask = np.asarray(mask).astype(np.float32)/255
-        img = (img-self.mean)/self.std
+    def __call__(self, sample):
+        for t in self.tsfms:
+            if rand() < self.p:
+                sample = t(sample)
+        return sample
+
+class MyRandomChoice:
+    def __init__(self, tsfms, p):
+        self.tsfms = tsfms
+        self.p = p
+    def __call__(self, sample):
+        if rand() < self.p:
+            t = np.random.choice(self.tsfms)
+            sample = t(sample)
+        return sample
+
+class MyRandomAffine(RandomAffine):
+    def __call__(self, sample):
+        img, mask = sample
+        ret = self.get_params(self.degrees, self.translate, self.scale, self.shear, img.size)
+        img = torchvision.transforms.functional.affine(img, *ret, resample=self.resample, fillcolor=self.fillcolor)
+        mask = torchvision.transforms.functional.affine(mask, *ret, resample=self.resample, fillcolor=self.fillcolor)
         return [img,mask]
 
 class Hflip:
-    def __init__(self,p):
-        self.p = p
     def __call__(self,sample):
-        if rand() > self.p: return sample
         img, mask = sample
         img = img.transpose(Image.FLIP_LEFT_RIGHT)
         mask = mask.transpose(Image.FLIP_LEFT_RIGHT)
         return [img, mask]
 
 class Distort:
-    def __init__(self, probability, grid_width, grid_height, magnitude):
-        self.probability = probability
+    def __init__(self, grid_width, grid_height, magnitude):
         self.grid_width = grid_width
         self.grid_height = grid_height
         self.magnitude = abs(magnitude)
 
     def __call__(self, sample):
-        if rand() > self.probability: return sample
         img, mask = sample
         w, h = img.size
 
@@ -153,12 +163,10 @@ class Distort:
         return [img,mask]
 
 class CropRandom:
-    def __init__(self, probability, percentage_area):
-        self.probability = probability
+    def __init__(self, percentage_area):
         self.percentage_area = percentage_area
 
     def __call__(self, sample):
-        if rand() > self.probability: return sample
         img, mask = sample
         w, h = img.size
 
