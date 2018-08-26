@@ -52,17 +52,24 @@ def score(predict, target, threshold):
     percentage = percentage.expand(-1,10)
     return torch.sum(percentage>metric,dim=1).float()/10
 
-def thres_score(model, val_dl):
+def thres_score(model, val_dl, reverse_tta):
     """res: shape: [thresholds,imgs], item: score
     """
     thresholds = np.linspace(0,1,num=100,endpoint=False)
     res = []
     with torch.no_grad():
         model.eval()
-        for img, mask in val_dl:
+        for batch in val_dl:
             batch_res = []
-            img,mask = T(img),T(mask)
-            predict = torch.sigmoid(model(img))
+            predicts = []
+            assert len(batch) == len(reverse_tta)
+            for [img, mask], f in zip(batch,reverse_tta):
+                img,mask = T(img),T(mask)
+                predict = torch.sigmoid(model(img))
+                if f:
+                    predict = f(predict)
+                predicts.append(predict)
+            predict = torch.stack(predicts).mean(dim=0)
             for t in thresholds:
                 batch_res.append(score(predict, mask, t))
             res.append(torch.stack(batch_res))

@@ -29,24 +29,24 @@ def to_np(sample):
     return img, mask
 
 class MyRandomApply:
-    def __init__(self, tsfms, p):
+    def __init__(self, tsfms, ps):
         self.tsfms = tsfms
-        self.p = p
+        self.ps = listify(ps,tsfms)
 
     def __call__(self, sample):
-        for t in self.tsfms:
-            if rand() < self.p:
+        for t,p in zip(self.tsfms,self.ps):
+            if rand() < p:
                 sample = t(sample)
         return sample
 
 class MyRandomChoice:
-    def __init__(self, tsfms, p):
+    def __init__(self, tsfms, ps):
         self.tsfms = tsfms
-        self.p = p
+        self.ps = listify(ps, tsfms)
+
     def __call__(self, sample):
-        if rand() < self.p:
-            t = np.random.choice(self.tsfms)
-            sample = t(sample)
+        t = np.random.choice(self.tsfms, p=self.ps)
+        sample = t(sample)
         return sample
 
 class MyRandomAffine(RandomAffine):
@@ -57,12 +57,21 @@ class MyRandomAffine(RandomAffine):
         mask = torchvision.transforms.functional.affine(mask, *ret, resample=self.resample, fillcolor=self.fillcolor)
         return [img,mask]
 
-class Hflip:
-    def __call__(self,sample):
-        img, mask = sample
-        img = img.transpose(Image.FLIP_LEFT_RIGHT)
-        mask = mask.transpose(Image.FLIP_LEFT_RIGHT)
-        return [img, mask]
+def hflip(sample):
+    img, mask = sample
+    img = img.transpose(Image.FLIP_LEFT_RIGHT)
+    mask = mask.transpose(Image.FLIP_LEFT_RIGHT)
+    return [img, mask]
+
+def img_hflip(sample):
+    img, mask = sample
+    img = img.transpose(Image.FLIP_LEFT_RIGHT)
+    return [img, mask]
+
+def mask_hflip(mask):
+    """mask: pytorch tensor, shape: [bs,...]"""
+    mask = mask.flip(dims=[len(mask.shape)-1])
+    return mask
 
 class Distort:
     def __init__(self, grid_width, grid_height, magnitude):
@@ -178,7 +187,7 @@ class CropRandom:
 
         def do(image):
             image = image.crop((random_left_shift, random_down_shift, w_new + random_left_shift, h_new + random_down_shift))
-            return image.resize([101, 101])
+            return image.resize([101, 101],resample=Image.LANCZOS)
 
         img = do(img)
         mask = do(mask)
