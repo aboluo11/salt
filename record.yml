@@ -5,6 +5,12 @@ full data:
 
   128ep:
 
+sample data:
+  composed tsfm:
+    32ep: 0.655625
+
+
+
 
 mean: 0.47146264
 std: 0.1610698

@@ -34,6 +34,7 @@ def reset_learner(trn_tsfm):
 
 def test(tsfm, epoch):
     learner = reset_learner(tsfm)
+    print(f'epoch={epoch}')
     learner.fit(n_epochs=epoch, lrs=lr,wds=wd,clr_params=[50,5,0.01,0], print_stats=False)
     print('----------------------------')
 
@@ -48,7 +49,7 @@ shear = MyRandomAffine(shear=45,**param)
 tsfm = MyRandomApply([hflip,shift,intensity,MyRandomChoice(
     [distort,zoom,crop,shear],ps=[0.45,0.225,0.225,0.1])],ps=[0.5,0.5,0.5,0.5])
 
-test(tsfm, epoch=8)
+test(tsfm, epoch=32)
 
 # print('crop')
 # test(CropRandom(0.8))

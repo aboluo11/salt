@@ -2,12 +2,21 @@ from lightai.imps import *
 from torchvision.transforms import *
 import torchvision.transforms
 
-def compose(*tsfms):
-    def f(sample):
-        for t in tsfms:
+class MyCompose:
+    def __init__(self, *tsfms):
+        self.tsfms = tsfms
+
+    def __call__(self, sample):
+        for t in self.tsfms:
             sample = t(sample)
         return sample
-    return f
+
+    def __repr__(self):
+        res = f'{self.__class__.__name__}('
+        for t in self.tsfms:
+            res += f'\n  {t.__class__.__name__}\n'
+        res += ')'
+        return res
 
 def unsqueeze(sample):
     img,mask = sample

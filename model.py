@@ -130,17 +130,14 @@ class UnetBlock(nn.Module):
         super().__init__()
         self.upconv1 = nn.ConvTranspose2d(x_c, feature_c, kernel_size=3, stride=2, padding=1, bias=False)
         self.conv1 = nn.Conv2d(feature_c*2, feature_c, kernel_size=3, stride=1, padding=1, bias=False)
-        # self.conv2 = nn.Conv2d(feature_c, feature_c, kernel_size=3, stride=1, padding=1, bias=False)
         self.upconv2 = nn.ConvTranspose2d(x_c, feature_c, kernel_size=3, stride=2, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(2*feature_c)
         self.bn2 = nn.BatchNorm2d(feature_c)
         self.bn3 = nn.BatchNorm2d(feature_c)
-        # self.bn4 = nn.BatchNorm2d(feature_c)
         
     def forward(self, feature, x):
         out = self.upconv1(x,output_size=feature.shape)
         out = self.bn1(torch.relu(torch.cat([out, feature], dim=1)))
-        # out = self.bn2(torch.relu(self.conv1(out)))
         out = self.bn2(torch.relu(self.conv1(out))) + self.bn3(torch.relu(self.upconv2(x,output_size=feature.shape)))
         return out
 
