@@ -1,0 +1,24 @@
+full data:
+  256ep:
+    no tta: 0.806500
+    tta: 0.811125
+
+sample data:
+  MyRandomApply(
+    sample_hflip, p=0.5
+    MyRandomAffine(degrees=(0, 0), translate=[0.5, 0.5], resample=PIL.Image.BICUBIC), p=0.5
+    MyColorJitter(brightness=0.05, contrast=0, saturation=0, hue=0), p=0.5
+    MyRandomChoice(
+      Distort(horizontal_tiles=5, vertical_tiles=5, magnitude=5), p=0.45
+      MyRandomAffine(degrees=(0, 0), scale=[0.5, 2], resample=PIL.Image.BICUBIC), p=0.225
+      CropRandom(percentage_area=0.7), p=0.225
+      MyRandomAffine(degrees=(0, 0), shear=(-45, 45), resample=PIL.Image.BICUBIC), p=0.1
+    ), p=0.5
+  ):
+    8ep: 0.562500
+    16ep: 0.626250
+    32ep: 0.655625
+    64ep: 0.695625
+
+mean: 0.47146264
+std: 0.1610698
