@@ -95,6 +95,12 @@ def leaves(model):
         res += leaves(module)
     return res
 
+def addindent(s_):
+    s = s_.split('\n')
+    s = ['  ' + line for line in s]
+    s = '\n'.join(s)
+    return s
+
 def visualize(ds, id):
     _, ax = plt.subplots(1,2)
     img, mask = ds[id]

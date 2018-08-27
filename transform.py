@@ -1,34 +1,7 @@
 from lightai.imps import *
 from torchvision.transforms import *
 import torchvision.transforms
-
-class MyCompose:
-    def __init__(self, *tsfms):
-        self.tsfms = tsfms
-
-    def __call__(self, sample):
-        for t in self.tsfms:
-            sample = t(sample)
-        return sample
-
-    def __repr__(self):
-        res = f'{self.__class__.__name__}('
-        for t in self.tsfms:
-            res += f'\n  {t}\n'
-        res += ')'
-        return res
-
-def unsqueeze(sample):
-    img,mask = sample
-    img = np.expand_dims(img, 0)
-    return [img,mask]
-
-def apply_to_img(tsfm):
-    def res(sample):
-        img, mask = sample
-        img = tsfm(img)
-        return [img,mask]
-    return res
+from functional import *
 
 def to_np(sample):
     img, mask = sample
@@ -37,7 +10,48 @@ def to_np(sample):
     img = np.expand_dims(img, 0)
     return img, mask
 
-class MyRandomApply:
+def sample_hflip(sample):
+    img, mask = sample
+    img = img.transpose(Image.FLIP_LEFT_RIGHT)
+    mask = mask.transpose(Image.FLIP_LEFT_RIGHT)
+    return [img, mask]
+
+def img_hflip(sample):
+    img, mask = sample
+    img = img.transpose(Image.FLIP_LEFT_RIGHT)
+    return [img, mask]
+
+def mask_hflip(mask):
+    """mask: pytorch tensor, shape: [bs,...]"""
+    mask = mask.flip(dims=[len(mask.shape)-1])
+    return mask
+
+class MyColorJitter(ColorJitter):
+    def __call__(self, sample):
+        img, mask = sample
+        img = super().__call__(img)
+        return [img, mask]
+
+class MultiChildTsfm:
+    def __repr__(self):
+        res = f'{self.__class__.__name__}('
+        for t,p in zip(self.tsfms,self.ps):
+            child_str = t.__name__ if isinstance(t, types.FunctionType) else repr(t)
+            child_str = addindent(child_str)
+            res += f'\n{child_str}, p={p}'
+        res += f'\n)'
+        return res
+
+class MyCompose(MultiChildTsfm):
+    def __init__(self, *tsfms):
+        self.tsfms = tsfms
+
+    def __call__(self, sample):
+        for t in self.tsfms:
+            sample = t(sample)
+        return sample
+
+class MyRandomApply(MultiChildTsfm):
     def __init__(self, tsfms, ps):
         self.tsfms = tsfms
         self.ps = listify(ps,tsfms)
@@ -48,7 +62,7 @@ class MyRandomApply:
                 sample = t(sample)
         return sample
 
-class MyRandomChoice:
+class MyRandomChoice(MultiChildTsfm):
     def __init__(self, tsfms, ps):
         self.tsfms = tsfms
         self.ps = listify(ps, tsfms)
@@ -66,22 +80,6 @@ class MyRandomAffine(RandomAffine):
         mask = torchvision.transforms.functional.affine(mask, *ret, resample=self.resample, fillcolor=self.fillcolor)
         return [img,mask]
 
-def hflip(sample):
-    img, mask = sample
-    img = img.transpose(Image.FLIP_LEFT_RIGHT)
-    mask = mask.transpose(Image.FLIP_LEFT_RIGHT)
-    return [img, mask]
-
-def img_hflip(sample):
-    img, mask = sample
-    img = img.transpose(Image.FLIP_LEFT_RIGHT)
-    return [img, mask]
-
-def mask_hflip(mask):
-    """mask: pytorch tensor, shape: [bs,...]"""
-    mask = mask.flip(dims=[len(mask.shape)-1])
-    return mask
-
 class Distort:
     def __init__(self, horizontal_tiles, vertical_tiles, magnitude):
         self.horizontal_tiles = horizontal_tiles
@@ -92,8 +90,8 @@ class Distort:
         img, mask = sample
         w, h = img.size
 
-        horizontal_tiles = self.grid_width
-        vertical_tiles = self.grid_height
+        horizontal_tiles = self.horizontal_tiles
+        vertical_tiles = self.vertical_tiles
 
         width_of_square = int(w // float(horizontal_tiles))
         height_of_square = int(h // float(vertical_tiles))

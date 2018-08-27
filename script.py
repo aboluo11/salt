@@ -13,8 +13,8 @@ wd = 1e-6
 lr = 0.3
 
 def get_data(trn_tsfm):
-    trn_tsfm = compose(trn_tsfm,to_np)
-    val_tsfm = compose(to_np)
+    trn_tsfm = MyCompose(trn_tsfm,to_np)
+    val_tsfm = to_np
     sp_trn_ds = ImageDataset('inputs/gray/sample/train',tsfm=trn_tsfm)
     sp_val_ds = ImageDataset('inputs/gray/sample/val',tsfm=val_tsfm)
     sp_trn_sampler = BatchSampler(sp_trn_ds, bs)
@@ -33,23 +33,21 @@ def reset_learner(trn_tsfm):
     return learner
 
 def test(tsfm, epoch):
+    print(f'epoch={epoch}, tsfm=\n{tsfm}')
     learner = reset_learner(tsfm)
-    print(f'epoch={epoch}')
     learner.fit(n_epochs=epoch, lrs=lr,wds=wd,clr_params=[50,5,0.01,0], print_stats=False)
     print('----------------------------')
 
 distort = Distort(5,5,5)
-intensity = apply_to_img(transforms.ColorJitter(brightness=0.05))
+intensity = MyColorJitter(brightness=0.05)
 crop = CropRandom(0.7)
 param = {'degrees':0,'resample':Image.BICUBIC}
 zoom = MyRandomAffine(scale=[0.5,2],**param)
 shift = MyRandomAffine(translate=[0.5,0.5],**param)
 shear = MyRandomAffine(shear=45,**param)
 
-tsfm = MyRandomApply([hflip,shift,intensity,MyRandomChoice(
+tsfm = MyRandomApply([sample_hflip,shift,intensity,MyRandomChoice(
     [distort,zoom,crop,shear],ps=[0.45,0.225,0.225,0.1])],ps=[0.5,0.5,0.5,0.5])
 
-test(tsfm, epoch=32)
-
-# print('crop')
-# test(CropRandom(0.8))
+for epoch in [64,128,256]:
+    test(tsfm, epoch)

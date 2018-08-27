@@ -3,14 +3,11 @@ full data:
     no tta: 0.806500
     tta: 0.811125
 
-  128ep:
-
 sample data:
   composed tsfm:
+    8ep: 0.562500
+    16ep: 0.626250
     32ep: 0.655625
-
-
-
 
 mean: 0.47146264
 std: 0.1610698
