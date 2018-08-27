@@ -1,0 +1,8 @@
+inputs
+.*
+model
+__pycache__
+*.csv
+test*
+*.ipynb
+!.gitignore
