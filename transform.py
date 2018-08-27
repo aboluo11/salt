@@ -14,7 +14,7 @@ class MyCompose:
     def __repr__(self):
         res = f'{self.__class__.__name__}('
         for t in self.tsfms:
-            res += f'\n  {t.__class__.__name__}\n'
+            res += f'\n  {t}\n'
         res += ')'
         return res
 
@@ -83,10 +83,10 @@ def mask_hflip(mask):
     return mask
 
 class Distort:
-    def __init__(self, grid_width, grid_height, magnitude):
-        self.grid_width = grid_width
-        self.grid_height = grid_height
-        self.magnitude = abs(magnitude)
+    def __init__(self, horizontal_tiles, vertical_tiles, magnitude):
+        self.horizontal_tiles = horizontal_tiles
+        self.vertical_tiles = vertical_tiles
+        self.magnitude = magnitude
 
     def __call__(self, sample):
         img, mask = sample
@@ -180,6 +180,14 @@ class Distort:
         mask = do(mask)
         return [img,mask]
 
+    def __repr__(self):
+        res = f'{self.__class__.__name__}('\
+            f'horizontal_tiles={self.horizontal_tiles}, '\
+            f'vertical_tiles={self.vertical_tiles}, '\
+            f'magnitude={self.magnitude}'\
+            f')'
+        return res
+
 class CropRandom:
     def __init__(self, percentage_area):
         self.percentage_area = percentage_area
@@ -202,3 +210,9 @@ class CropRandom:
         mask = do(mask)
 
         return [img,mask]
+
+    def __repr__(self):
+        res = f'{self.__class__.__name__}('\
+            f'percentage_area={self.percentage_area}'\
+            f')'
+        return res
