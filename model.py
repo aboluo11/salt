@@ -57,7 +57,10 @@ class ResNet(nn.Module):
         self.conv2 = nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1,
                                bias=False)
         self.bn2 = nn.BatchNorm2d(64)
-        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        # self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1,
+                               bias=False)
+        self.bn3 = nn.BatchNorm2d(64)
         self.layer1 = self._make_layer(block, 64, layers[0])
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
@@ -96,7 +99,10 @@ class ResNet(nn.Module):
         x = self.conv2(x)
         x = F.relu(inplace=True)
         x = self.bn2(x)
-        x = self.maxpool(x)
+        # x = self.maxpool(x)
+        x = self.conv3(x)
+        x = F.relu(inplace=True)
+        x = self.bn3(x)
 
         x = self.layer1(x)
         x = self.layer2(x)
