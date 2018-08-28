@@ -3,6 +3,9 @@ from torchvision.transforms import *
 import torchvision.transforms
 from functional import *
 
+# mean: 0.47146264
+# std: 0.1610698
+
 def to_np(sample):
     img, mask = sample
     img = np.asarray(img).astype(np.float32)/255
