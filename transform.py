@@ -48,7 +48,8 @@ class MyCompose(MultiChildTsfm):
 
     def __call__(self, sample):
         for t in self.tsfms:
-            sample = t(sample)
+            if t:
+                sample = t(sample)
         return sample
 
 class MyRandomApply(MultiChildTsfm):

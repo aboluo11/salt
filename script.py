@@ -42,12 +42,15 @@ distort = Distort(5,5,5)
 intensity = MyColorJitter(brightness=0.05)
 crop = CropRandom(0.7)
 param = {'degrees':0,'resample':Image.BICUBIC}
-zoom = MyRandomAffine(scale=[0.5,2],**param)
+zoom = MyRandomAffine(scale=[0.5,1.5],**param)
+zoom_in = MyRandomAffine(scale=[1,2],**param)
+zoom_out = MyRandomAffine(scale=[0.5,1],**param)
 shift = MyRandomAffine(translate=[0.5,0.5],**param)
 shear = MyRandomAffine(shear=45,**param)
 
 tsfm = MyRandomApply([sample_hflip,shift,intensity,MyRandomChoice(
     [distort,zoom,crop,shear],ps=[0.45,0.225,0.225,0.1])],ps=[0.5,0.5,0.5,0.5])
 
-for epoch in [64,128,256]:
-    test(tsfm, epoch)
+for t in [None,distort,intensity,crop,zoom,zoom_in,zoom_out,shift,shear]:
+    for epoch in [8,16,32,64,128,256]:
+        test(t, epoch)
