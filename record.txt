@@ -16,16 +16,16 @@ sample data:
     8ep: 0.606875
     16ep: 0.639375
     32ep: 0.640625
-    64ep: 0.656250
+    64ep: 0.65625
     128ep: 0.635625
     256ep: 0.639375
 
   MyColorJitter(brightness=0.05, contrast=0, saturation=0, hue=0):
-    8ep: 0.586250
-    16ep: 0.596250
+    8ep: 0.58625
+    16ep: 0.59625
     32ep: 0.623125
-    64ep: 0.623750
-    128ep: 0.587500
+    64ep: 0.62375
+    128ep: 0.5875
     256ep: 0.589375
 
   CropRandom(percentage_area=0.7):
@@ -37,32 +37,32 @@ sample data:
     256ep: 0.690625
 
   MyRandomAffine(degrees=(0, 0), scale=[0.5, 1.5], resample=PIL.Image.BICUBIC):
-    8ep: 0.593750
+    8ep: 0.59375
     16ep: 0.624375
-    32ep: 0.665000
-    64ep: 0.653750
+    32ep: 0.665
+    64ep: 0.65375
     128ep: 0.675625
-    256ep: 0.661250
+    256ep: 0.66125
 
   MyRandomAffine(degrees=(0, 0), scale=[1, 2], resample=PIL.Image.BICUBIC):
     8ep: 0.538125
     16ep: 0.580625
     32ep: 0.599375
-    64ep: 0.623750
-    128ep: 0.611250
-    256ep: 0.633750
+    64ep: 0.62375
+    128ep: 0.61125
+    256ep: 0.63375
 
   MyRandomAffine(degrees=(0, 0), scale=[0.5, 1], resample=PIL.Image.BICUBIC):
     8ep: 0.506875
     16ep: 0.563125
-    32ep: 0.596250
+    32ep: 0.59625
     64ep: 0.613125
-    128ep: 0.622500
+    128ep: 0.6225
     256ep: 0.620625
 
   MyRandomAffine(degrees=(0, 0), translate=[0.5, 0.5], resample=PIL.Image.BICUBIC):
-    8ep: 0.548750
-    16ep: 0.608750
+    8ep: 0.54875
+    16ep: 0.60875
     32ep: 0.651875
     64ep: 0.691875
     128ep: 0.721875
@@ -72,8 +72,9 @@ sample data:
     8ep: 0.570625
     16ep: 0.598125
     32ep: 0.639375
-    64ep: 0.638750
-    128ep: 0.653750
+    64ep: 0.63875
+    128ep: 0.65375
+    256ep: 0.65375
 
   MyRandomApply(
     sample_hflip, p=0.5
@@ -92,5 +93,6 @@ sample data:
     64ep: 0.695625
     128ep: 0.731875
     256ep: 0.732500
-
+    width=2:
+      128ep: 0.735625
 
