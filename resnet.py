@@ -92,11 +92,11 @@ class ResNet(nn.Module):
 
     def forward(self, x):
         x = self.conv1(x)
-        x = F.relu(inplace=True)
+        x = F.relu(x,inplace=True)
         x = self.bn1(x)
-        x = self.conv2(x)
-        x = F.relu(inplace=True)
-        x = self.bn2(x)
+        # x = self.conv2(x)
+        # x = F.relu(x,inplace=True)
+        # x = self.bn2(x)
         x = self.maxpool(x)
 
         x = self.layer1(x)

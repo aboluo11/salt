@@ -12,11 +12,13 @@ def create_val(ds):
         (trn_path/'images'/f'{fname}').rename(val_path/'images'/f'{fname}')
         (trn_path/'masks'/f'{fname}').rename(val_path/'masks'/f'{fname}')
 
-def create_sample(trn_ds, val_ds):
-    _, trn_sample_idx = split_idx(len(trn_ds.img), 0.8, seed=1)
-    _, val_sample_idx = split_idx(len(val_ds.img), 0.8, seed=1)
+def create_sample(trn_ds, val_ds, path):
+    _, trn_sample_idx = split_idx(len(trn_ds.img), 0.9, seed=1)
+    _, val_sample_idx = split_idx(len(val_ds.img), 0.9, seed=1)
+    path = Path(path)
+    path.mkdir()
     for name,idx in zip(['train','val'],[trn_sample_idx,val_sample_idx]):
-        sample_path = Path(f'inputs/sample/{name}')
+        sample_path = Path(path/f'{name}')
         sample_path.mkdir()
         (sample_path/'images').mkdir()
         (sample_path/'masks').mkdir()
@@ -24,8 +26,9 @@ def create_sample(trn_ds, val_ds):
         ori_path = Path('inputs/train') if name=='train' else Path('inputs/val')
         for i in idx:
             fname = ds.img[i].parts[-1]
-            copyfile(ori_path/'images'/f'{fname}', sample_path/'images'/f'{fname}')
-            copyfile(ori_path/'masks'/f'{fname}', sample_path/'masks'/f'{fname}')
+            img, mask = ds[i]
+            img.save(sample_path/'images'/f'{fname}')
+            mask.save(sample_path/'masks'/f'{fname}')
 
 def rl_enc(img):
     pixels = img.flatten('F')

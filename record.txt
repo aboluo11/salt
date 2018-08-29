@@ -96,3 +96,9 @@ sample data:
     width=2:
       128ep: 0.735625
 
+    bs=16:
+      direct downsample:
+        nodrop: 0.660000
+        drop 0.1: 0.650000
+
+
