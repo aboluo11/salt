@@ -3,6 +3,9 @@ full data:
     no tta: 0.806500
     tta: 0.811125
 
+  200ep: 0.793875 drop 0.1
+
+
 sample data:
   None:
     8ep: 0.610625
