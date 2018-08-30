@@ -4,6 +4,8 @@ class ImageDataset:
     def __init__(self, path, tsfm=None, tta_tsfms=None):
         """
         tta_tsfms: list
+        train time: tta_tsfms is None, return sample
+        test time: tta_tsfm must be non-empty list, return samples
         """
         path = Path(path)
         img_path = path/'images'
@@ -18,10 +20,10 @@ class ImageDataset:
         sample = [img,mask]
         if self.tta_tsfms:
             samples = []
-            if self.tta_tsfms:
-                for t in self.tta_tsfms:
-                    if t:
-                        sample = t(sample)
+            for t in self.tta_tsfms:
+                if t:
+                    samples.append(t(sample))
+                else:
                     samples.append(sample)
             if self.tsfm:
                 for i, sample in enumerate(samples):

@@ -38,6 +38,7 @@ class Dynamic(nn.Module):
     def forward(self,x):
         x = self.bn_input(x)
         x = self.encoder(x)
+        # logit = self.linear(x)
         for feature,block in zip(reversed(self.features),self.upmodel):
             x = block(feature,x)
         self.features = []
@@ -50,6 +51,7 @@ class Dynamic(nn.Module):
     def dummy_forward(self,x,drop):
         with torch.no_grad():
             x = self.encoder(x)
+        # self.linear = nn.Linear(x.shape[1]**2, 1)
         upmodel = []
         for i in reversed(range(len(self.features))):
             feature = self.features[i]

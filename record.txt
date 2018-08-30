@@ -5,6 +5,12 @@ full data:
 
   200ep: 0.793875 drop 0.1
 
+  add conv to resnet:
+    128ep: 0.800750
+    160ep: 0.791250
+    200ep: 0.811750
+    256ep: 0.809750
+
 
 sample data:
   None:
@@ -98,6 +104,10 @@ sample data:
     256ep: 0.732500
     width=2:
       128ep: 0.735625
+    128ep:
+      drop=0.05: 0.735000
+      drop=0.1: 0.745625
+      drop=0.2: 0.716875
 
     bs=16:
       direct downsample:
