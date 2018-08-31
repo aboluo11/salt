@@ -5,7 +5,7 @@ full data:
 
   200ep: 0.793875 drop 0.1
 
-  add conv to resnet:
+  add conv to resnet drop 0.1:
     128ep: 0.800750
     160ep: 0.791250
     200ep: 0.811750

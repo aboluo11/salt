@@ -4,8 +4,8 @@ class ImageDataset:
     def __init__(self, path, tsfm=None, tta_tsfms=None):
         """
         tta_tsfms: list
-        train time: tta_tsfms is None, return sample
-        test time: tta_tsfm must be non-empty list, return samples
+        tta_tsfms is None: return sample
+        tta_tsfm non-empty list: return samples
         """
         path = Path(path)
         img_path = path/'images'

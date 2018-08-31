@@ -11,6 +11,7 @@ def to_np(sample):
     img = np.asarray(img).astype(np.float32)/255
     mask = np.asarray(mask).astype(np.float32)/255
     img = np.expand_dims(img, 0)
+    mask = np.expand_dims(mask, 0)
     return img, mask
 
 def sample_hflip(sample):
