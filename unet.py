@@ -23,10 +23,13 @@ class UnetBlock(nn.Module):
         return out
 
 class Dynamic(nn.Module):
-    def __init__(self, encoder, ds, drop):
+    def __init__(self, encoder, ds, drop, linear_drop):
         super().__init__()
         self.bn_input = nn.BatchNorm2d(1)
         self.encoder = encoder
+        self.linear_drop1 = nn.Dropout(linear_drop)
+        self.linear_drop2 = nn.Dropout(linear_drop)
+        self.linear_bn = nn.BatchNorm1d(256)
         self.features = []
         self.handles = []
         hook_fn = lambda module,input:self.features.append(input[0])
@@ -39,10 +42,17 @@ class Dynamic(nn.Module):
         """
         return [mask, has_salt(logit)]
         """
-        inp = x
         x = self.bn_input(x)
         x = self.encoder(x)
-        has_salt = self.linear(x.view(x.shape[0], -1)).view(-1)
+
+        has_salt = x.view(x.shape[0], -1)
+        has_salt = self.linear_drop1(has_salt)
+        has_salt = self.linear1(has_salt)
+        has_salt = torch.relu(has_salt)
+        has_salt = self.linear_bn(has_salt)
+        has_salt = self.linear_drop2(has_salt)
+        has_salt = self.linear2(has_salt).view(-1)
+
         for feature,block in zip(reversed(self.features),self.upmodel):
             x = block(feature,x)
         self.features = []
@@ -55,7 +65,8 @@ class Dynamic(nn.Module):
     def dummy_forward(self,x,drop):
         with torch.no_grad():
             x = self.encoder(x)
-        self.linear = nn.Linear(x.shape[1]*x.shape[2]*x.shape[3], 1)
+        self.linear1 = nn.Linear(x.shape[1]*x.shape[2]*x.shape[3], 256)
+        self.linear2 = nn.Linear(256, 1)
         upmodel = []
         for i in reversed(range(len(self.features))):
             feature = self.features[i]

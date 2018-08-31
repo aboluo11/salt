@@ -109,6 +109,16 @@ sample data:
       drop=0.1: 0.745625
       drop=0.2: 0.716875
 
+    add no_salt loss:
+      128ep:
+        linear_drop=0: 0.76
+        linear_drop=0.5: 0.746875
+
+      two linear layers:
+        linear_drop=0: 0.763750
+        linear_drop=0.1: 0.753750
+        linear_drop=0.5: 0.755000
+
     bs=16:
       direct downsample:
         nodrop: 0.660000
