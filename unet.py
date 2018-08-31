@@ -13,7 +13,7 @@ class UnetBlock(nn.Module):
         self.bn1 = nn.BatchNorm2d(2*feature_c)
         self.bn2 = nn.BatchNorm2d(feature_c)
         self.bn3 = nn.BatchNorm2d(feature_c)
-        self.drop = nn.Dropout(drop)
+        self.drop = nn.Dropout2d(drop)
         
     def forward(self, feature, x):
         out = self.upconv1(x,output_size=feature.shape)
@@ -36,14 +36,18 @@ class Dynamic(nn.Module):
         self.dummy_forward(T(ds[0][0], cuda=False).unsqueeze(0), drop)
 
     def forward(self,x):
+        """
+        return [mask, has_salt(logit)]
+        """
+        inp = x
         x = self.bn_input(x)
         x = self.encoder(x)
-        # logit = self.linear(x)
+        has_salt = self.linear(x.view(x.shape[0], -1)).view(-1)
         for feature,block in zip(reversed(self.features),self.upmodel):
             x = block(feature,x)
         self.features = []
         x = self.final_conv(x)
-        return x
+        return x, has_salt
         
     def get_layer_groups(self):
         return [[self.encoder],[self.upmodel,self.final_conv]]
@@ -51,7 +55,7 @@ class Dynamic(nn.Module):
     def dummy_forward(self,x,drop):
         with torch.no_grad():
             x = self.encoder(x)
-        # self.linear = nn.Linear(x.shape[1]**2, 1)
+        self.linear = nn.Linear(x.shape[1]*x.shape[2]*x.shape[3], 1)
         upmodel = []
         for i in reversed(range(len(self.features))):
             feature = self.features[i]

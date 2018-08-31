@@ -6,10 +6,19 @@ class Score:
         self.scores = []
 
     def __call__(self, predict, target):
+        """
+        predict: [mask, has_salt(logit)]
+        target: mask
+        """
         batch = []
-        predict = torch.sigmoid(predict)
+        p_mask = predict[0]
+        has_salt_index = torch.sigmoid(predict[1]) > 0.5
+        if has_salt_index.sum():
+            p_mask[has_salt_index] = torch.sigmoid(p_mask[has_salt_index])
+        if (~has_salt_index).sum():
+            p_mask[~has_salt_index] = torch.zeros_like(p_mask[0], dtype=torch.float32, device='cuda')
         for t in np.linspace(0.4,0.6,num=21,endpoint=True):
-            s = score(predict,target,t)
+            s = score(p_mask,target,t)
             batch.append(s)
         self.scores.append(torch.stack(batch))
 
