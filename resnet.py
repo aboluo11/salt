@@ -94,14 +94,6 @@ class ResNet(nn.Module):
 
 
 def resnet18(**kwargs):
-    """Constructs a ResNet-18 model.
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-    """
     model = ResNet(BasicBlock, **kwargs)
-    # if pretrained:
-    #     state_dict = model_zoo.load_url(model_urls['resnet18'])
-    #     state_dict['conv1.weight'] = state_dict['conv1.weight'].mean(1,keepdim=True)
-    #     model.load_state_dict(state_dict)
     return model
     

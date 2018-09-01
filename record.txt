@@ -11,7 +11,7 @@ full data:
     200ep: 0.811750
     256ep: 0.809750
 
-  no salt loss:
+  no_salt loss:
     128ep:
       no tta: 0.814125
       tta: 0.82224995
@@ -23,6 +23,10 @@ full data:
       tta: 0.8335  kaggle: 0.817
 
       linear_drop=0.2: 0.821875
+
+      resnet blocks:
+        no tta: 0.832625
+        tta: 0.84225005
 
 sample data:
   None:
