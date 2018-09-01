@@ -68,7 +68,10 @@ def thres_score(model, val_dl, reverse_tta):
             assert len(batch) == len(reverse_tta)
             for [img, mask], f in zip(batch,reverse_tta):
                 img,mask = T(img),T(mask)
-                predict = torch.sigmoid(model(img))
+                predict, has_salt = model(img)
+                predict, has_salt = torch.sigmoid(predict), torch.sigmoid(has_salt)
+                if (has_salt<0.5).sum():
+                    predict[has_salt < 0.5] = torch.zeros_like(predict[0], dtype=torch.float32, device='cuda')
                 if f:
                     predict = f(predict)
                 predicts.append(predict)

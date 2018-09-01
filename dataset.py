@@ -36,6 +36,32 @@ class ImageDataset:
     def __len__(self):
         return len(self.img)
 
+class TestDataset():
+    def __init__(self,tsfm=None,tta_tsfms=None):
+        img_path = Path('inputs/gray/test/images')
+        self.img = list(img_path.iterdir())
+        self.tsfm = tsfm
+        self.tta_tsfms = tta_tsfms
+        
+    def __getitem__(self, idx):
+        img = Image.open(self.img[idx])
+        imgs = []
+        if self.tta_tsfms:
+            for t in self.tta_tsfms:
+                if t:
+                    imgs.append(t(img))
+                else:
+                    imgs.append(img)
+        if self.tsfm:
+            for i, img in enumerate(imgs):
+                imgs[i] = self.tsfm(img)
+        name = self.img[idx].parts[-1].split('.')[0]
+        imgs = [[img,name] for img in imgs]
+        return imgs
+    
+    def __len__(self):
+        return len(self.img)
+
 class TotalDataset(ImageDataset):
     def __init__(self):
         img_trn_path = Path('inputs/gray/train/images')

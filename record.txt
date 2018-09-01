@@ -11,6 +11,18 @@ full data:
     200ep: 0.811750
     256ep: 0.809750
 
+  no salt loss:
+    128ep:
+      no tta: 0.814125
+      tta: 0.82224995
+      fine tune:
+        no tta: 0.819500
+        tta: 0.823625
+    256ep:
+      no tta: 0.826125
+      tta: 0.8335  kaggle: 0.817
+
+      linear_drop=0.2: 0.821875
 
 sample data:
   None:
