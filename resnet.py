@@ -9,18 +9,14 @@ model_urls = {
     'resnet152': 'https://download.pytorch.org/models/resnet152-b121ed2d.pth',
 }
 
-
 def conv3x3(in_planes, out_planes, stride=1):
     """3x3 convolution with padding"""
     return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
                      padding=1, bias=False)
 
-
 class BasicBlock(nn.Module):
-    expansion = 1
-
     def __init__(self, inplanes, planes, drop, stride=1, downsample=None):
-        super(BasicBlock, self).__init__()
+        super().__init__()
         self.conv1 = conv3x3(inplanes, planes, stride)
         self.bn1 = nn.BatchNorm2d(planes)
         self.relu = nn.ReLU(inplace=True)
@@ -29,40 +25,41 @@ class BasicBlock(nn.Module):
         self.downsample = downsample
         self.stride = stride
         self.drop = nn.Dropout2d(drop)
-
     def forward(self, x):
         residual = x
-
         out = self.conv1(x)
         out = self.bn1(out)
         out = self.relu(out)
         out = self.drop(out)
         out = self.conv2(out)
         out = self.bn2(out)
-
         if self.downsample is not None:
             residual = self.downsample(x)
-
         out += residual
         out = self.relu(out)
-
         return out
 
+class ConvBlock(nn.Module):
+    def __init__(self, in_c, out_c, kernel_size, stride, padding=0):
+        super().__init__()
+        self.conv = nn.Conv2d(in_c,out_c,kernel_size,stride=stride,padding=padding,bias=False)
+        self.bn = nn.BatchNorm2d(out_c)
+    def forward(self, x):
+        x = self.conv(x)
+        x = torch.relu(x)
+        x = self.bn(x)
+        return x
+
 class ResNet(nn.Module):
-    def __init__(self, block, layers, drop, num_classes=1000):
-        self.inplanes = 64
-        super(ResNet, self).__init__()
-        self.conv1 = nn.Conv2d(1, 32, kernel_size=7, stride=1, padding=3, bias=False)
-        self.bn1 = nn.BatchNorm2d(32)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1, bias=False)
-        self.bn2 = nn.BatchNorm2d(64)
-        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-        self.layer1 = self._make_layer(block, 64, layers[0],drop)
-        self.layer2 = self._make_layer(block, 128, layers[1],drop, stride=2)
-        self.layer3 = self._make_layer(block, 256, layers[2],drop,stride=2)
-        self.layer4 = self._make_layer(block, 512, layers[3],drop,stride=2)
-        self.avgpool = nn.AvgPool2d(7, stride=1)
-        self.fc = nn.Linear(512 * block.expansion, num_classes)
+    def __init__(self, block, drop):
+        self.inplanes = 32
+        super().__init__()
+        self.conv1 = ConvBlock(1,32,7,stride=1,padding=3)
+        self.layer1 = self._make_layer(block, 32, 2, drop, stride=2)
+        self.layer2 = self._make_layer(block, 64, 2, drop, stride=2)
+        self.layer3 = self._make_layer(block, 128, 2, drop, stride=2)
+        self.layer4 = self._make_layer(block, 256, 2, drop,stride=2)
+        self.layer5 = self._make_layer(block, 512, 2, drop,stride=2)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -73,51 +70,38 @@ class ResNet(nn.Module):
 
     def _make_layer(self, block, planes, blocks, drop, stride=1):
         downsample = None
-        if stride != 1 or self.inplanes != planes * block.expansion:
+        if stride != 1:
             downsample = nn.Sequential(
-                nn.Conv2d(self.inplanes, planes * block.expansion,
+                nn.Conv2d(self.inplanes, planes,
                           kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(planes * block.expansion),
+                nn.BatchNorm2d(planes),
             )
-
         layers = []
         layers.append(block(self.inplanes, planes, drop, stride, downsample))
-        self.inplanes = planes * block.expansion
+        self.inplanes = planes
         for i in range(1, blocks):
             layers.append(block(self.inplanes, planes,drop))
-
         return nn.Sequential(*layers)
 
     def forward(self, x):
         x = self.conv1(x)
-        x = F.relu(x,inplace=True)
-        x = self.bn1(x)
-        x = self.conv2(x)
-        x = F.relu(x,inplace=True)
-        x = self.bn2(x)
-        x = self.maxpool(x)
-
         x = self.layer1(x)
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x)
-
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.fc(x)
-
+        x = self.layer5(x)
         return x
 
 
-def resnet18(pretrained=False, **kwargs):
+def resnet18(**kwargs):
     """Constructs a ResNet-18 model.
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = ResNet(BasicBlock, [2, 2, 2, 2], **kwargs)
-    if pretrained:
-        state_dict = model_zoo.load_url(model_urls['resnet18'])
-        state_dict['conv1.weight'] = state_dict['conv1.weight'].mean(1,keepdim=True)
-        model.load_state_dict(state_dict)
+    model = ResNet(BasicBlock, **kwargs)
+    # if pretrained:
+    #     state_dict = model_zoo.load_url(model_urls['resnet18'])
+    #     state_dict['conv1.weight'] = state_dict['conv1.weight'].mean(1,keepdim=True)
+    #     model.load_state_dict(state_dict)
     return model
     

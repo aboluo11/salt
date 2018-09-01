@@ -64,6 +64,7 @@ class Dynamic(nn.Module):
 
     def dummy_forward(self,x,drop):
         with torch.no_grad():
+            self.encoder.eval()
             x = self.encoder(x)
         self.linear1 = nn.Linear(x.shape[1]*x.shape[2]*x.shape[3], 256)
         self.linear2 = nn.Linear(256, 1)

@@ -131,6 +131,9 @@ sample data:
         linear_drop=0.1: 0.753750
         linear_drop=0.5: 0.755000
 
+        change pool to conv: 0.761250
+        change encoder conv to resnet block: 0.777500
+
     bs=16:
       direct downsample:
         nodrop: 0.660000
