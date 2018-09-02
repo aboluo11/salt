@@ -1,5 +1,17 @@
 from lightai.imps import *
 
+def fold_csv_to_trn_val(csv, path, n_fold):
+    path = Path(path)
+    for k in range(n_fold):
+        fold_path = path/f'{k}'
+        val_fold = csv.loc[csv['fold']==k]
+        trn_fold = csv.loc[csv['fold']!=k]
+        val_fold.drop('fold', axis=1, inplace=True)
+        trn_fold.drop('fold', axis=1, inplace=True)
+        fold_path.mkdir(exist_ok=True)
+        val_fold.to_csv(fold_path/'val.csv', index=False)
+        trn_fold.to_csv(fold_path/'trn.csv', index=False)
+
 def create_kfold_csv(n_fold=5):
     img_paths = chain(Path('inputs/train/images').iterdir(), Path('inputs/val/images').iterdir())
     img_names = [p.parts[-1].split('.')[0] for p in img_paths]
@@ -8,18 +20,12 @@ def create_kfold_csv(n_fold=5):
     depth.sort_values('z', inplace=True)
     depth.drop('z', axis=1, inplace=True)
     depth['fold'] = (list(range(n_fold))*depth.shape[0])[:depth.shape[0]]
-    for k in range(n_fold):
-        val_fold = depth.loc[depth['fold']==k]
-        trn_fold = depth.loc[depth['fold']!=k]
-        val_fold.drop('fold', axis=1, inplace=True)
-        trn_fold.drop('fold', axis=1, inplace=True)
-        path = Path(f'inputs/kfold/{k}')
-        path.mkdir(exist_ok=True)
-        val_fold.to_csv(path/'val.csv', index=False)
-        trn_fold.to_csv(path/'trn.csv', index=False)
+    fold_csv_to_trn_val(depth, f'inputs/all', n_fold)
 
-def create_sample_csv(fraction=0.2):
-    pass
+def create_sample_kfold_csv(n_fold=5):
+    sample = pd.read_csv('inputs/all/0/val.csv')
+    sample['fold'] = (list(range(n_fold))*sample.shape[0])[:sample.shape[0]]
+    fold_csv_to_trn_val(sample, f'inputs/sample', n_fold)
 
 def create_val(ds):
     trn_idx, valid_idx = split_idx(len(ds.img), 0.8, seed=1)
