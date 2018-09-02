@@ -202,8 +202,8 @@ class CropRandom:
         w_new = int(math.floor(w * self.percentage_area))
         h_new = int(math.floor(h * self.percentage_area))
 
-        random_left_shift = np.random.randint(0, int((w - w_new)))  # Note: randint() is from uniform distribution.
-        random_down_shift = np.random.randint(0, int((h - h_new)))
+        random_left_shift = np.random.randint(0, int(w - w_new))  # Note: randint() is from uniform distribution.
+        random_down_shift = np.random.randint(0, int(h - h_new))
 
         def do(image):
             image = image.crop((random_left_shift, random_down_shift, w_new + random_left_shift, h_new + random_down_shift))

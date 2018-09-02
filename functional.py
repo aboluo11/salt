@@ -1,5 +1,26 @@
 from lightai.imps import *
 
+def create_kfold_csv(n_fold=5):
+    img_paths = chain(Path('inputs/train/images').iterdir(), Path('inputs/val/images').iterdir())
+    img_names = [p.parts[-1].split('.')[0] for p in img_paths]
+    depth = pd.read_csv('inputs/depths.csv')
+    depth = depth.loc[depth['id'].isin(img_names)]
+    depth.sort_values('z', inplace=True)
+    depth.drop('z', axis=1, inplace=True)
+    depth['fold'] = (list(range(n_fold))*depth.shape[0])[:depth.shape[0]]
+    for k in range(n_fold):
+        val_fold = depth.loc[depth['fold']==k]
+        trn_fold = depth.loc[depth['fold']!=k]
+        val_fold.drop('fold', axis=1, inplace=True)
+        trn_fold.drop('fold', axis=1, inplace=True)
+        path = Path(f'inputs/kfold/{k}')
+        path.mkdir(exist_ok=True)
+        val_fold.to_csv(path/'val.csv', index=False)
+        trn_fold.to_csv(path/'trn.csv', index=False)
+
+def create_sample_csv(fraction=0.2):
+    pass
+
 def create_val(ds):
     trn_idx, valid_idx = split_idx(len(ds.img), 0.8, seed=1)
     trn_path = Path('inputs/train')
