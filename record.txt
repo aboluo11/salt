@@ -28,6 +28,18 @@ full data:
         no tta: 0.832625
         tta: 0.84225005 kaggle: 0.821
 
+full_data_k_fold:
+  fold0:
+    256ep: 0.812500
+  fold1:
+    256ep: 0.811000
+  fold2:
+    256ep: 0.832250
+  fold3:
+    256ep: 0.818375
+  fold4:
+    256ep: 0.832375
+
 sample_data_k_fold:
   fold0:
     128ep: 0.700000
