@@ -39,6 +39,8 @@ full_data_k_fold:
     256ep: 0.818375
   fold4:
     256ep: 0.832375
+  kaggle:
+    256ep k-fold ensemble: 0.830
 
 sample_data_k_fold:
   fold0:

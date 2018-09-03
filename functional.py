@@ -52,31 +52,34 @@ def score(predict, target, threshold):
     percentage = percentage.expand(-1,10)
     return torch.sum(percentage>metric,dim=1).float()/10
 
-def thres_score(model, val_dl, reverse_tta):
-    """res: shape: [thresholds,imgs], item: score
+def thres_score(models, val_dls, reverse_tta):
+    """res: shape: [thresholds], item: score
     """
     thresholds = np.linspace(0,1,num=100,endpoint=False)
+    model_res = []
     res = []
     with torch.no_grad():
-        model.eval()
-        for batch in val_dl:
-            batch_res = []
-            predicts = []
-            assert len(batch) == len(reverse_tta)
-            for [img, mask], f in zip(batch,reverse_tta):
-                img,mask = T(img),T(mask)
-                predict, has_salt = model(img)
-                predict, has_salt = torch.sigmoid(predict), torch.sigmoid(has_salt)
-                if (has_salt<0.5).sum():
-                    predict[has_salt < 0.5] = torch.zeros_like(predict[0], dtype=torch.float32, device='cuda')
-                if f:
-                    predict = f(predict)
-                predicts.append(predict)
-            predict = torch.stack(predicts).mean(dim=0)
-            for t in thresholds:
-                batch_res.append(score(predict, mask, t))
-            res.append(torch.stack(batch_res))
-    return thresholds,np.array(torch.cat(res,dim=1).mean(dim=1))
+        for model, val_dl in zip(models, val_dls):
+            model.eval()
+            for batch in val_dl:
+                batch_res = []
+                predicts = []
+                assert len(batch) == len(reverse_tta)
+                for [img, mask], f in zip(batch,reverse_tta):
+                    img,mask = T(img),T(mask)
+                    predict, has_salt = model(img)
+                    predict, has_salt = torch.sigmoid(predict), torch.sigmoid(has_salt)
+                    if (has_salt<0.5).sum():
+                        predict[has_salt < 0.5] = torch.zeros_like(predict[0], dtype=torch.float32, device='cuda')
+                    if f:
+                        predict = f(predict)
+                    predicts.append(predict)
+                predict = torch.stack(predicts).mean(dim=0)
+                for t in thresholds:
+                    batch_res.append(score(predict, mask, t))
+                model_res.append(torch.stack(batch_res))
+            res.append(torch.cat(model_res,dim=1).mean(dim=1))
+    return thresholds, np.array(torch.stack(res).mean(dim=0))
 
 def cal_mean_std(trn_dl):
     total = []

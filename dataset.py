@@ -75,7 +75,7 @@ class ImageDataset:
     def __len__(self):
         return len(self.img)
 
-class TestDataset():
+class TestDataset:
     def __init__(self,tsfm=None,tta_tsfms=None):
         img_path = Path('inputs/gray/test/images')
         self.img = list(img_path.iterdir())
