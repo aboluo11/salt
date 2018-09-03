@@ -27,36 +27,6 @@ def create_sample_kfold_csv(n_fold=5):
     sample['fold'] = (list(range(n_fold))*sample.shape[0])[:sample.shape[0]]
     fold_csv_to_trn_val(sample, f'inputs/sample', n_fold)
 
-def create_val(ds):
-    trn_idx, valid_idx = split_idx(len(ds.img), 0.8, seed=1)
-    trn_path = Path('inputs/train')
-    val_path = Path('inputs/val')
-    val_path.mkdir()
-    (val_path/'images').mkdir()
-    (val_path/'masks').mkdir()
-    for idx in valid_idx:
-        fname = ds.img[idx].parts[-1]
-        (trn_path/'images'/f'{fname}').rename(val_path/'images'/f'{fname}')
-        (trn_path/'masks'/f'{fname}').rename(val_path/'masks'/f'{fname}')
-
-def create_sample(trn_ds, val_ds, path):
-    _, trn_sample_idx = split_idx(len(trn_ds.img), 0.9, seed=1)
-    _, val_sample_idx = split_idx(len(val_ds.img), 0.9, seed=1)
-    path = Path(path)
-    path.mkdir()
-    for name,idx in zip(['train','val'],[trn_sample_idx,val_sample_idx]):
-        sample_path = Path(path/f'{name}')
-        sample_path.mkdir()
-        (sample_path/'images').mkdir()
-        (sample_path/'masks').mkdir()
-        ds = trn_ds if name=='train' else val_ds
-        ori_path = Path('inputs/train') if name=='train' else Path('inputs/val')
-        for i in idx:
-            fname = ds.img[i].parts[-1]
-            img, mask = ds[i]
-            img.save(sample_path/'images'/f'{fname}')
-            mask.save(sample_path/'masks'/f'{fname}')
-
 def rl_enc(img):
     pixels = img.flatten('F')
     a = np.concatenate([[0],pixels])
@@ -133,10 +103,3 @@ def addindent(s_):
     s = ['  ' + line for line in s]
     s = '\n'.join(s)
     return s
-
-def visualize(ds, id):
-    _, ax = plt.subplots(1,2)
-    img, mask = ds[id]
-    print(ds.img[id])
-    ax[0].imshow(img)
-    ax[1].imshow(mask)
