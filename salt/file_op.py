@@ -19,6 +19,7 @@ def create_kfold_csv(n_fold=5):
     img_names = [p.parts[-1].split('.')[0] for p in img_paths]
     depth = pd.read_csv('inputs/depths.csv')
     depth = depth.loc[depth['id'].isin(img_names)]
+    depth['id'] = depth['id'] + '.png'
     depth.sort_values('z', inplace=True)
     depth.drop('z', axis=1, inplace=True)
     depth['fold'] = (list(range(n_fold)) * depth.shape[0])[:depth.shape[0]]

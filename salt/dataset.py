@@ -15,7 +15,7 @@ class CsvDataset:
         self.tta_tsfms = tta_tsfms
 
     def __getitem__(self, idx):
-        name = self.names.iloc[idx].item() + '.png'
+        name = self.names.iloc[idx].item()
         img = Image.open(self.img_path / name)
         mask = Image.open(self.mask_path / name)
         sample = [img, mask]
