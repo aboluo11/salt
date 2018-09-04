@@ -1,18 +1,30 @@
 from lightai.imps import *
 from torchvision.transforms import *
 import torchvision.transforms
-from functional import *
+
 
 # mean: 0.47146264
 # std: 0.1610698
 
+def addindent(s_):
+    s = s_.split('\n')
+    s = ['  ' + line for line in s]
+    s = '\n'.join(s)
+    return s
+
+
 def to_np(sample):
     img, mask = sample
-    img = np.asarray(img).astype(np.float32)/255
-    mask = np.asarray(mask).astype(np.float32)/255
+    img = np.asarray(img).astype(np.float32) / 255
+    mask = np.asarray(mask).astype(np.float32) / 255
     img = np.expand_dims(img, 0)
     mask = np.expand_dims(mask, 0)
     return img, mask
+
+
+def hflip(img):
+    return img.transpose(Image.FLIP_LEFT_RIGHT)
+
 
 def sample_hflip(sample):
     img, mask = sample
@@ -20,15 +32,18 @@ def sample_hflip(sample):
     mask = mask.transpose(Image.FLIP_LEFT_RIGHT)
     return [img, mask]
 
+
 def img_hflip(sample):
     img, mask = sample
     img = img.transpose(Image.FLIP_LEFT_RIGHT)
     return [img, mask]
 
+
 def mask_hflip(mask):
     """mask: pytorch tensor, shape: [bs,...]"""
-    mask = mask.flip(dims=[len(mask.shape)-1])
+    mask = mask.flip(dims=[len(mask.shape) - 1])
     return mask
+
 
 class MyColorJitter(ColorJitter):
     def __call__(self, sample):
@@ -36,15 +51,17 @@ class MyColorJitter(ColorJitter):
         img = super().__call__(img)
         return [img, mask]
 
+
 class MultiChildTsfm:
     def __repr__(self):
         res = f'{self.__class__.__name__}('
-        for t,p in zip(self.tsfms,self.ps):
+        for t, p in zip(self.tsfms, self.ps):
             child_str = t.__name__ if isinstance(t, types.FunctionType) else repr(t)
             child_str = addindent(child_str)
             res += f'\n{child_str}, p={p}'
         res += f'\n)'
         return res
+
 
 class MyCompose(MultiChildTsfm):
     def __init__(self, *tsfms):
@@ -56,16 +73,18 @@ class MyCompose(MultiChildTsfm):
                 sample = t(sample)
         return sample
 
+
 class MyRandomApply(MultiChildTsfm):
     def __init__(self, tsfms, ps):
         self.tsfms = tsfms
-        self.ps = listify(ps,tsfms)
+        self.ps = listify(ps, tsfms)
 
     def __call__(self, sample):
-        for t,p in zip(self.tsfms,self.ps):
+        for t, p in zip(self.tsfms, self.ps):
             if rand() < p:
                 sample = t(sample)
         return sample
+
 
 class MyRandomChoice(MultiChildTsfm):
     def __init__(self, tsfms, ps):
@@ -77,13 +96,15 @@ class MyRandomChoice(MultiChildTsfm):
         sample = t(sample)
         return sample
 
+
 class MyRandomAffine(RandomAffine):
     def __call__(self, sample):
         img, mask = sample
         ret = self.get_params(self.degrees, self.translate, self.scale, self.shear, img.size)
         img = torchvision.transforms.functional.affine(img, *ret, resample=self.resample, fillcolor=self.fillcolor)
         mask = torchvision.transforms.functional.affine(mask, *ret, resample=self.resample, fillcolor=self.fillcolor)
-        return [img,mask]
+        return [img, mask]
+
 
 class Distort:
     def __init__(self, horizontal_tiles, vertical_tiles, magnitude):
@@ -131,7 +152,7 @@ class Distort:
 
         last_column = []
         for i in range(vertical_tiles):
-            last_column.append((horizontal_tiles-1)+horizontal_tiles*i)
+            last_column.append((horizontal_tiles - 1) + horizontal_tiles * i)
 
         last_row = range((horizontal_tiles * vertical_tiles) - horizontal_tiles, horizontal_tiles * vertical_tiles)
 
@@ -146,11 +167,12 @@ class Distort:
 
         dxy = []
         for _ in polygon_indices:
-            dx = np.random.randint(-self.magnitude, self.magnitude+1)
-            dy = np.random.randint(-self.magnitude, self.magnitude+1)
-            dxy.append([dx,dy])
+            dx = np.random.randint(-self.magnitude, self.magnitude + 1)
+            dy = np.random.randint(-self.magnitude, self.magnitude + 1)
+            dxy.append([dx, dy])
+
         def do(image):
-            for [a, b, c, d],[dx,dy] in zip(polygon_indices,dxy):
+            for [a, b, c, d], [dx, dy] in zip(polygon_indices, dxy):
                 x1, y1, x2, y2, x3, y3, x4, y4 = polygons[a]
                 polygons[a] = [x1, y1,
                                x2, y2,
@@ -174,22 +196,24 @@ class Distort:
                                x2, y2,
                                x3, y3,
                                x4, y4]
-                
+
             generated_mesh = []
             for i in range(len(dimensions)):
                 generated_mesh.append([dimensions[i], polygons[i]])
             return image.transform(image.size, Image.MESH, generated_mesh, resample=Image.BICUBIC)
+
         img = do(img)
         mask = do(mask)
-        return [img,mask]
+        return [img, mask]
 
     def __repr__(self):
-        res = f'{self.__class__.__name__}('\
-            f'horizontal_tiles={self.horizontal_tiles}, '\
-            f'vertical_tiles={self.vertical_tiles}, '\
-            f'magnitude={self.magnitude}'\
-            f')'
+        res = f'{self.__class__.__name__}(' \
+              f'horizontal_tiles={self.horizontal_tiles}, ' \
+              f'vertical_tiles={self.vertical_tiles}, ' \
+              f'magnitude={self.magnitude}' \
+              f')'
         return res
+
 
 class CropRandom:
     def __init__(self, percentage_area):
@@ -206,16 +230,17 @@ class CropRandom:
         random_down_shift = np.random.randint(0, int(h - h_new))
 
         def do(image):
-            image = image.crop((random_left_shift, random_down_shift, w_new + random_left_shift, h_new + random_down_shift))
-            return image.resize([101, 101],resample=Image.LANCZOS)
+            image = image.crop(
+                (random_left_shift, random_down_shift, w_new + random_left_shift, h_new + random_down_shift))
+            return image.resize([101, 101], resample=Image.LANCZOS)
 
         img = do(img)
         mask = do(mask)
 
-        return [img,mask]
+        return [img, mask]
 
     def __repr__(self):
-        res = f'{self.__class__.__name__}('\
-            f'percentage_area={self.percentage_area}'\
-            f')'
+        res = f'{self.__class__.__name__}(' \
+              f'percentage_area={self.percentage_area}' \
+              f')'
         return res
