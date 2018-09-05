@@ -45,9 +45,8 @@ class Dynamic(nn.Module):
         self.linear_bn = nn.BatchNorm1d(256)
         self.features = []
         self.handles = []
-        hook_fn = lambda module, input: self.features.append(input[0])
         for m in leaves(encoder):
-            handle = m.register_forward_pre_hook(hook_fn)
+            handle = m.register_forward_pre_hook(lambda module, input: self.features.append(input[0]))
             self.handles.append(handle)
         self.dummy_forward(T(ds[0][0], cuda=False).unsqueeze(0), drop)
 
