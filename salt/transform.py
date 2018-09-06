@@ -23,7 +23,11 @@ def to_np(sample):
 
 
 def hflip(img):
-    return img.transpose(Image.FLIP_LEFT_RIGHT)
+    if isinstance(img, Image.Image):
+        img = img.transpose(Image.FLIP_LEFT_RIGHT)
+    elif isinstance(img, torch.Tensor):
+        img = img.flip(dims=[len(img.shape) - 1])
+    return img
 
 
 def sample_hflip(sample):
@@ -31,18 +35,6 @@ def sample_hflip(sample):
     img = img.transpose(Image.FLIP_LEFT_RIGHT)
     mask = mask.transpose(Image.FLIP_LEFT_RIGHT)
     return [img, mask]
-
-
-def img_hflip(sample):
-    img, mask = sample
-    img = img.transpose(Image.FLIP_LEFT_RIGHT)
-    return [img, mask]
-
-
-def mask_hflip(mask):
-    """mask: pytorch tensor, shape: [bs,...]"""
-    mask = mask.flip(dims=[len(mask.shape) - 1])
-    return mask
 
 
 class MyColorJitter(ColorJitter):

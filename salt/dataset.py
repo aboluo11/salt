@@ -23,7 +23,7 @@ class CsvDataset:
             samples = []
             for t in self.tta_tsfms:
                 if t:
-                    samples.append(t(sample))
+                    samples.append([t(img), mask])
                 else:
                     samples.append(sample)
             if self.tsfm:

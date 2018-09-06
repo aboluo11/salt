@@ -3,7 +3,7 @@ from lightai.imps import *
 from lightai.sampler import BatchSampler
 
 from salt.dataset import TestDataset
-from salt.transform import mask_hflip, hflip
+from salt.transform import hflip
 
 
 def tta_mean_predict(predicts: List, reverse_tta: List):
@@ -27,7 +27,7 @@ def tta_mean_predict(predicts: List, reverse_tta: List):
     return torch.stack(p_masks).mean(dim=0)
 
 
-def predict_test(models: List, tta_tsfms: List = [None, hflip], reverse_tta: List = [None, mask_hflip]):
+def predict_test(models: List, tta_tsfms: List = [None, hflip], reverse_tta: List = [None, hflip]):
     """
     :param reverse_tta: apply to predicted mask
     """
