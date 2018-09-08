@@ -69,7 +69,12 @@ sample_data_k_fold:
   fold1:
     128ep: 0.698125
   fold2:
-    128ep: 0.728125
+    bce loss:
+        128ep: 0.728125
+        256ep: 0.735625
+    iou loss:
+        256ep: 0.760000
+
 
 sample data:
   None:
