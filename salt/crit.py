@@ -25,15 +25,15 @@ class Crit:
         return mask_loss * has_salt_index.sum().float() / bs * self.weight[0] + has_salt_loss * self.weight[1]
 
 
-def lovasz_grad(gt_sorted):
+def get_iou_loss(gt_sorted):
     gt_sorted = gt_sorted.byte()
     gts = gt_sorted.sum(dim=1, keepdim=True)
     intersection = gts - gt_sorted.cumsum(1)
     union = gts + (1 - gt_sorted).cumsum(1)
-    jaccard = 1 - intersection.float() / union.float()
+    iou_loss = 1 - intersection.float() / union.float()
     p = gt_sorted.shape[-1]
-    jaccard[:, 1:p] = jaccard[:, 1:p] - jaccard[:, 0:-1]
-    return jaccard
+    iou_loss[:, 1:p] = iou_loss[:, 1:p] - iou_loss[:, 0:-1]
+    return iou_loss
 
 
 def lovasz(logit, target):
@@ -45,6 +45,6 @@ def lovasz(logit, target):
     error = 1 - logit * sign
     error_sorted, perm = torch.sort(error, dim=-1, descending=True)
     gt_sorted = target.gather(dim=1, index=perm)
-    grad = lovasz_grad(gt_sorted)
-    loss = torch.bmm(torch.relu(error_sorted).view(bs, 1, -1), grad.view(bs, -1, 1))
+    iou_loss = get_iou_loss(gt_sorted)
+    loss = torch.bmm(torch.relu(error_sorted).view(bs, 1, -1), iou_loss.view(bs, -1, 1))
     return loss.mean()
