@@ -9,3 +9,4 @@ test*
 temp*
 log
 /record.txt
+*.zip
