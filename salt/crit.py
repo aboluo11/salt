@@ -32,8 +32,8 @@ def get_weight(gt_sorted):
     union = gts + (1 - gt_sorted).cumsum(1)
     iou_loss = 1 - intersection.float() / union.float()
     p = gt_sorted.shape[-1]
-    weight[:, 1:p] = iou_loss[:, 1:p] - iou_loss[:, 0:-1]
-    return weight
+    iou_loss[:, 1:p] = iou_loss[:, 1:p] - iou_loss[:, 0:-1]
+    return iou_loss
 
 
 def lovasz(logit, target):
