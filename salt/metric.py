@@ -22,7 +22,7 @@ class Score:
             predicts = [predicts]
             reverse_tta = [None]
         p_mask = tta_mean_predict(predicts, reverse_tta)
-        s = score(p_mask, target, 0.5)
+        s = get_score(p_mask, target, 0.5)
         self.scores.append(s)
 
     def res(self) -> float:
@@ -32,7 +32,13 @@ class Score:
         return torch.cat(self.scores).mean().item()
 
 
-def score(predict: torch.Tensor, target: torch.Tensor, threshold: float) -> torch.Tensor:
+def iou_to_score(iou):
+    shape = iou.shape
+    iou = iou.view(*shape, 1).expand(*shape, 10)
+    metric = torch.arange(0.5, 1, 0.05, device='cuda')
+    return torch.sum(iou > metric, dim=-1).float() / 10
+
+def get_score(predict: torch.Tensor, target: torch.Tensor, threshold: float) -> torch.Tensor:
     """
     :param predict: batch of predict masks
     :param target: batch of target masks
@@ -42,11 +48,11 @@ def score(predict: torch.Tensor, target: torch.Tensor, threshold: float) -> torc
     metric = torch.arange(0.5, 1, 0.05, device='cuda')
     intersection = torch.sum((predict > threshold) * (target == 1), dim=1)
     union = torch.sum(predict > threshold, dim=1) + torch.sum(target == 1, dim=1) - intersection
-    percentage = intersection.float() / union.float()
-    percentage[torch.isnan(percentage)] = 1
-    percentage = percentage.view(-1, 1)
-    percentage = percentage.expand(-1, 10)
-    return torch.sum(percentage > metric, dim=1).float() / 10
+    iou = intersection.float() / union.float()
+    iou[torch.isnan(iou)] = 1
+    iou = iou.view(-1, 1)
+    iou = iou.expand(-1, 10)
+    return torch.sum(iou > metric, dim=1).float() / 10
 
 
 def val_score(model: nn.Module, val_dl: DataLoader, reverse_tta: List) -> float:

@@ -1,5 +1,5 @@
 from lightai.imps import *
-
+from salt.metric import iou_to_score
 
 class Crit:
     def __init__(self, mask_loss, weight):
@@ -30,21 +30,22 @@ def get_weight(gt_sorted):
     gts = gt_sorted.sum(dim=1, keepdim=True)
     intersection = gts - gt_sorted.cumsum(1)
     union = gts + (1 - gt_sorted).cumsum(1)
-    iou_loss = 1 - intersection.float() / union.float()
+    iou = intersection.float() / union.float()
+    score = iou_to_score(iou)
+    delta = 1 - score
     p = gt_sorted.shape[-1]
-    iou_loss[:, 1:p] = iou_loss[:, 1:p] - iou_loss[:, 0:-1]
-    return iou_loss
+    delta[:, 1:] = delta[:, 1:p] - delta[:, 0:-1]
+    return delta
 
 
 def lovasz(logit, target):
     bs = logit.shape[0]
     logit = logit.view(bs, -1)
     target = target.view(bs, -1)
-    length = target.shape[-1]
     sign = 2 * target - 1
-    error = 1 - logit * sign
+    error = torch.relu(1 - logit * sign)
     error_sorted, perm = torch.sort(error, dim=-1, descending=True)
     gt_sorted = target.gather(dim=1, index=perm)
     weight = get_weight(gt_sorted)
-    loss = torch.bmm(torch.relu(error_sorted).view(bs, 1, -1), weight.view(bs, -1, 1))
-    return loss.mean()
+    delta_average = torch.bmm(error_sorted.view(bs, 1, -1), weight.view(bs, -1, 1))
+    return delta_average.mean()
