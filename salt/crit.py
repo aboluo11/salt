@@ -31,10 +31,8 @@ def get_weight(gt_sorted):
     intersection = gts - gt_sorted.cumsum(1)
     union = gts + (1 - gt_sorted).cumsum(1)
     iou = intersection.float() / union.float()
-    score = iou_to_score(iou)
-    delta = 1 - score
-    p = gt_sorted.shape[-1]
-    delta[:, 1:] = delta[:, 1:p] - delta[:, 0:-1]
+    delta = 1 - iou
+    delta[:, 1:] = delta[:, 1:] - delta[:, 0:-1]
     return delta
 
 

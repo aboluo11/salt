@@ -22,7 +22,7 @@ class Score:
             predicts = [predicts]
             reverse_tta = [None]
         p_mask = tta_mean_predict(predicts, reverse_tta)
-        s = get_score(p_mask, target, 0.5)
+        s = get_score(p_mask, target)
         self.scores.append(s)
 
     def res(self) -> float:
@@ -38,21 +38,18 @@ def iou_to_score(iou):
     metric = torch.arange(0.5, 1, 0.05, device='cuda')
     return torch.sum(iou > metric, dim=-1).float() / 10
 
-def get_score(predict: torch.Tensor, target: torch.Tensor, threshold: float) -> torch.Tensor:
+def get_score(predict: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
     """
     :param predict: batch of predict masks
     :param target: batch of target masks
-    :return: a batch of images' score at threshold t, shape: [batch_size]
+    :return: a batch of images' score at threshold 0.5, shape: [batch_size]
     """
     predict, target = predict.view(-1, 101 * 101), target.view(-1, 101 * 101)
-    metric = torch.arange(0.5, 1, 0.05, device='cuda')
-    intersection = torch.sum((predict > threshold) * (target == 1), dim=1)
-    union = torch.sum(predict > threshold, dim=1) + torch.sum(target == 1, dim=1) - intersection
+    intersection = torch.sum((predict > 0.5) * (target == 1), dim=1)
+    union = torch.sum(predict > 0.5, dim=1) + torch.sum(target == 1, dim=1) - intersection
     iou = intersection.float() / union.float()
     iou[torch.isnan(iou)] = 1
-    iou = iou.view(-1, 1)
-    iou = iou.expand(-1, 10)
-    return torch.sum(iou > metric, dim=1).float() / 10
+    return iou_to_score(iou)
 
 
 def val_score(model: nn.Module, val_dl: DataLoader, reverse_tta: List) -> float:
