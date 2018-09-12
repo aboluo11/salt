@@ -52,19 +52,25 @@ def get_score(predict: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
     return iou_to_score(iou)
 
 
-def val_score(model: nn.Module, val_dl: DataLoader, reverse_tta: List) -> float:
+def val_score(models: List, val_dl: DataLoader, reverse_tta: List) -> float:
     """
     :param val_dl: each batch: tta list of [img, mask]
-    :return: model's score for val_dl
+    :return: models' score for val_dl
     """
-    metric = Score()
+    scores = []
     with torch.no_grad():
-        model.eval()
+        for model in models:
+            model.eval()
         for tta_batch in val_dl:
-            predicts = []
-            for img, mask in tta_batch:
-                img, mask = T(img), T(mask)
-                predict = model(img)
-                predicts.append(predict)
-            metric(predicts, mask, reverse_tta)
-    return metric.res()
+            p_masks = []
+            for model in models:
+                predicts = []
+                for img, mask in tta_batch:
+                    img, mask = T(img), T(mask)
+                    predict = model(img)
+                    predicts.append(predict)
+                p_mask = tta_mean_predict(predicts, reverse_tta)
+                p_masks.append(p_mask)
+            p_mask = torch.stack(p_masks).mean(dim=0)
+            scores.append(get_score(p_mask, mask))
+    return torch.cat(scores).mean().item()
