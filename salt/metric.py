@@ -73,4 +73,5 @@ def val_score(models: List, val_dl: DataLoader, reverse_tta: List) -> float:
                 p_masks.append(p_mask)
             p_mask = torch.stack(p_masks).mean(dim=0)
             scores.append(get_score(p_mask, mask))
-    return torch.cat(scores).mean().item()
+    res = torch.cat(scores).mean().item()
+    return f'{res:.6f}'
