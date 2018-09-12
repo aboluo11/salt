@@ -69,7 +69,9 @@ class MyCompose(MultiChildTsfm):
 class MyRandomApply(MultiChildTsfm):
     def __init__(self, tsfms, ps):
         self.tsfms = tsfms
-        self.ps = listify(ps, tsfms)
+        if not isinstance(ps, collections.Iterable):
+            ps = listify(ps, tsfms)
+        self.ps = ps
 
     def __call__(self, sample):
         for t, p in zip(self.tsfms, self.ps):
@@ -81,7 +83,9 @@ class MyRandomApply(MultiChildTsfm):
 class MyRandomChoice(MultiChildTsfm):
     def __init__(self, tsfms, ps):
         self.tsfms = tsfms
-        self.ps = listify(ps, tsfms)
+        if not isinstance(ps, collections.Iterable):
+            ps = listify(ps, tsfms)
+        self.ps = ps
 
     def __call__(self, sample):
         t = np.random.choice(self.tsfms, p=self.ps)
