@@ -64,9 +64,11 @@ class Dynamic(nn.Module):
 
         hyper_columns = []
         for feature, block in zip(reversed(self.features), self.upmodel):
-            hyper_columns.append(F.interpolate(x, size=101, mode='bilinear', align_corners=False))
             x = block(feature, x)
-        hyper_columns.append(x)
+            if x.shape[-1] != 101:
+                hyper_columns.append(F.interpolate(x, size=101, mode='bilinear', align_corners=False))
+            else:
+                hyper_columns.append(x)
         self.features = []
         x = torch.cat(hyper_columns, dim=1)
         x = self.final_conv(x)
@@ -86,13 +88,12 @@ class Dynamic(nn.Module):
         for i in reversed(range(len(self.features))):
             feature = self.features[i]
             if feature.shape[2] != x.shape[2]:
-                final_c += x.shape[1]
                 block = UnetBlock(feature.shape[1], x.shape[1], 64, drop)
                 x = block(feature, x)
                 upmodel.append(block)
+                final_c += x.shape[1]
             else:
                 self.handles[i].remove()
-        final_c += x.shape[1]
         self.features = []
         self.upmodel = nn.ModuleList(upmodel)
         self.final_conv = nn.Sequential(
