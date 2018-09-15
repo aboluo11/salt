@@ -12,17 +12,16 @@ def leaves(model):
         res += leaves(module)
     return res
 
-
 class UnetBlock(nn.Module):
-    def __init__(self, feature_c, x_c, drop):
+    def __init__(self, feature_c, x_c, out_c, drop):
         """input channel size: feature_c, x_c
         output channel size: feature_c
         """
         super().__init__()
-        self.upconv1 = nn.ConvTranspose2d(x_c, feature_c, kernel_size=3, stride=2, padding=1, bias=False)
-        self.conv1 = nn.Conv2d(feature_c * 2, feature_c, kernel_size=3, stride=1, padding=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(2 * feature_c)
-        self.bn2 = nn.BatchNorm2d(feature_c)
+        self.upconv1 = nn.ConvTranspose2d(x_c, x_c, kernel_size=3, stride=2, padding=1, bias=False)
+        self.conv1 = nn.Conv2d(feature_c + x_c, out_c, kernel_size=3, stride=1, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(feature_c + x_c)
+        self.bn2 = nn.BatchNorm2d(out_c)
         self.drop = nn.Dropout2d(drop)
 
     def forward(self, feature, x):
@@ -88,7 +87,7 @@ class Dynamic(nn.Module):
             feature = self.features[i]
             if feature.shape[2] != x.shape[2]:
                 final_c += x.shape[1]
-                block = UnetBlock(feature.shape[1], x.shape[1], drop)
+                block = UnetBlock(feature.shape[1], x.shape[1], 64, drop)
                 x = block(feature, x)
                 upmodel.append(block)
             else:
@@ -96,4 +95,9 @@ class Dynamic(nn.Module):
         final_c += x.shape[1]
         self.features = []
         self.upmodel = nn.ModuleList(upmodel)
-        self.final_conv = nn.Conv2d(final_c, 1, kernel_size=1)
+        self.final_conv = nn.Sequential(
+            nn.Conv2d(final_c, 64, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.BatchNorm2d(64),
+            nn.Conv2d(64, 1, kernel_size=1)
+        )
