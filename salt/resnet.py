@@ -94,3 +94,9 @@ class ResNet(nn.Module):
         x = self.layer3(x)
         x = self.layer4(x)
         return x
+
+def resnet18(**kwargs):
+    return ResNet(layers=[2,2,2,2],block=BasicBlock,**kwargs)
+
+def resnet34(**kwargs):
+    return ResNet(layers=[3,4,6,3], block=BasicBlock, **kwargs)
