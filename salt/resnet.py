@@ -56,15 +56,14 @@ class ConvBlock(nn.Module):
 
 
 class ResNet(nn.Module):
-    def __init__(self, block, drop):
+    def __init__(self, layers, block, drop):
         self.inplanes = 32
         super().__init__()
         self.conv1 = ConvBlock(1, 32, 7, stride=1, padding=3)
-        self.layer1 = self._make_layer(block, 32, 2, drop, stride=2)
-        self.layer2 = self._make_layer(block, 64, 2, drop, stride=2)
-        self.layer3 = self._make_layer(block, 128, 2, drop, stride=2)
-        self.layer4 = self._make_layer(block, 256, 2, drop, stride=2)
-        self.layer5 = self._make_layer(block, 512, 2, drop, stride=2)
+        self.layer1 = self._make_layer(block, 64, layers[0], drop, stride=2)
+        self.layer2 = self._make_layer(block, 128, layers[1], drop, stride=2)
+        self.layer3 = self._make_layer(block, 256, layers[2], drop, stride=2)
+        self.layer4 = self._make_layer(block, 512, layers[3], drop, stride=2)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -94,7 +93,6 @@ class ResNet(nn.Module):
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x)
-        x = self.layer5(x)
         return x
 
 
