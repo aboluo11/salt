@@ -65,9 +65,13 @@ class Dynamic(nn.Module):
         has_salt = self.linear_drop2(has_salt)
         has_salt = self.linear2(has_salt).view(-1)
 
+        hyper_columns = []
         for feature, block in zip(reversed(self.features), self.upmodel):
+            hyper_columns.append(F.interpolate(x, size=101, mode='bilinear', align_corners=False))
             x = block(feature, x)
+        hyper_columns.append(x)
         self.features = []
+        x = torch.cat(hyper_columns, dim=1)
         x = self.final_conv(x)
         return x, has_salt
 
@@ -81,14 +85,17 @@ class Dynamic(nn.Module):
         self.linear1 = nn.Linear(x.shape[1] * x.shape[2] * x.shape[3], 256)
         self.linear2 = nn.Linear(256, 1)
         upmodel = []
+        final_c = 0
         for i in reversed(range(len(self.features))):
             feature = self.features[i]
             if feature.shape[2] != x.shape[2]:
+                final_c += x.shape[1]
                 block = UnetBlock(feature.shape[1], x.shape[1], drop)
                 x = block(feature, x)
                 upmodel.append(block)
             else:
                 self.handles[i].remove()
+        final_c += x.shape[1]
         self.features = []
         self.upmodel = nn.ModuleList(upmodel)
-        self.final_conv = nn.Conv2d(x.shape[1], 1, kernel_size=1)
+        self.final_conv = nn.Conv2d(final_c, 1, kernel_size=1)
