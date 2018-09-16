@@ -1,7 +1,7 @@
 from lightai.imps import *
 
 
-def leaves(model):
+def _leaves(model):
     res = []
     childs = children(model)
     if len(childs) == 0:
@@ -9,7 +9,7 @@ def leaves(model):
     for key, module in model._modules.items():
         if key == 'downsample' or key == 'relu':
             continue
-        res += leaves(module)
+        res += _leaves(module)
     return res
 
 class UnetBlock(nn.Module):
@@ -42,7 +42,7 @@ class Dynamic(nn.Module):
         self.linear_bn = nn.BatchNorm1d(256)
         self.features = []
         self.handles = []
-        for m in leaves(encoder):
+        for m in _leaves(encoder):
             handle = m.register_forward_pre_hook(lambda module, input: self.features.append(input[0]))
             self.handles.append(handle)
         self.dummy_forward(T(ds[0][0], cuda=False).unsqueeze(0), drop)
@@ -51,6 +51,12 @@ class Dynamic(nn.Module):
         """
         return [mask, has_salt(logit)]
         """
+
+        # for key, model in self.encoder._modules.items():
+        #     print(f'{key}: {grad_mean(model)}')
+        # for key, model in self.upmodel._modules.items():
+        #     print(f'{key}: {grad_mean(model)}')
+
         x = self.bn_input(x)
         x = self.encoder(x)
 
@@ -83,19 +89,21 @@ class Dynamic(nn.Module):
             x = self.encoder(x)
         self.linear1 = nn.Linear(x.shape[1] * x.shape[2] * x.shape[3], 256)
         self.linear2 = nn.Linear(256, 1)
-        upmodel = []
+        upmodel = OrderedDict()
         final_c = 0
+        decoder_count = 0
         for i in reversed(range(len(self.features))):
             feature = self.features[i]
             if feature.shape[2] != x.shape[2]:
+                decoder_count += 1
                 block = UnetBlock(feature.shape[1], x.shape[1], 64, drop)
                 x = block(feature, x)
-                upmodel.append(block)
+                upmodel[f'decoder_layer{decoder_count}'] = block
                 final_c += x.shape[1]
             else:
                 self.handles[i].remove()
         self.features = []
-        self.upmodel = nn.ModuleList(upmodel)
+        self.upmodel = nn.Sequential(upmodel)
         self.final_conv = nn.Sequential(
             nn.Conv2d(final_c, 64, kernel_size=3, padding=1),
             nn.ReLU(),
