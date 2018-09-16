@@ -5,19 +5,25 @@ class Gradient_cb(CallBack):
     def __init__(self, model):
         self.layers = {}
         self.gradients = {}
+        self.weights = {}
         for part in [model.encoder, model.upmodel]:
             for layer_name,layer in part._modules.items():
                 self.layers[layer_name] = layer
         self.layers['final_conv'] = model.final_conv
         for layer_name in self.layers.keys():
             self.gradients[layer_name] = []
+            self.weights[layer_name] = []
 
     def on_batch_end(self, loss, model):
         for layer_name, layer in self.layers.items():
-            self.gradients[layer_name].append(grad_mean(layer))
+            weight, grad = weight_grad_mean(layer)
+            self.gradients[layer_name].append(grad)
+            self.weights[layer_name].append(weight)
 
     def plot(self):
         _, axes = plt.subplots(len(self.layers), 1, figsize=(15, 5*len(self.layers)))
-        for (layer_name,gradient),ax in zip(self.gradients.items(),axes):
-            ax.plot(gradient)
+        for (layer_name,gradient),weight,ax in zip(self.gradients.items(),self.weights.values(),axes):
+            ax.plot(gradient, label='gradient')
+            ax.plot(weight, label='weight')
             ax.set_title(layer_name)
+            ax.legend()
