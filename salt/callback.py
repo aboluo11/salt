@@ -21,9 +21,9 @@ class Gradient_cb(CallBack):
             self.weights[layer_name].append(weight)
 
     def plot(self):
-        _, axes = plt.subplots(len(self.layers), 1, figsize=(15, 5*len(self.layers)))
+        _, axes = plt.subplots(len(self.layers), 2, figsize=(15, 5*len(self.layers)))
         for (layer_name,gradient),weight,ax in zip(self.gradients.items(),self.weights.values(),axes):
-            ax.plot(gradient, label='gradient')
-            ax.plot(weight, label='weight')
-            ax.set_title(layer_name)
-            ax.legend()
+            ax[0].plot(gradient)
+            ax[1].plot(weight)
+            ax[0].set_title(f'{layer_name}, gradient')
+            ax[1].set_title(f'{layer_name}, weight')
