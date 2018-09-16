@@ -107,6 +107,6 @@ class Dynamic(nn.Module):
         self.final_conv = nn.Sequential(
             nn.Conv2d(final_c, 64, kernel_size=3, padding=1),
             nn.ReLU(),
-            nn.BatchNorm2d(64),
+            # nn.BatchNorm2d(64),
             nn.Conv2d(64, 1, kernel_size=1)
         )
