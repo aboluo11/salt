@@ -1,29 +1,26 @@
 from lightai.imps import *
 from lightai.callback import CallBack
+from tensorboardX import SummaryWriter
 
-class Gradient_cb(CallBack):
-    def __init__(self, model):
+class GradientLogger(CallBack):
+    def __init__(self, model, writer):
         self.layers = {}
-        self.gradients = {}
-        self.weights = {}
         for part in [model.encoder, model.upmodel]:
             for layer_name,layer in part._modules.items():
                 self.layers[layer_name] = layer
         self.layers['final_conv'] = model.final_conv
-        for layer_name in self.layers.keys():
-            self.gradients[layer_name] = []
-            self.weights[layer_name] = []
+        self.iter = 0
+        self.writer = writer
 
     def on_batch_end(self, loss, model):
-        for layer_name, layer in self.layers.items():
-            weight, grad = weight_grad_mean(layer)
-            self.gradients[layer_name].append(grad)
-            self.weights[layer_name].append(weight)
+        if self.iter % 10 == 0:
+            for layer_name, layer in self.layers.items():
+                weights = []
+                children = leaves(layer)
+                for each in children:
+                    if hasattr(each, 'weight') and each.__class__.__name__[:9] != 'BatchNorm':
+                        weights.append(each.weight.view(-1))
+                weight = torch.cat(weights).cpu().detach().numpy()
+                self.writer.add_histogram(f'{layer_name}_weight', weight, self.iter)
+        self.iter += 1
 
-    def plot(self):
-        _, axes = plt.subplots(len(self.layers), 2, figsize=(15, 5*len(self.layers)))
-        for (layer_name,gradient),weight,ax in zip(self.gradients.items(),self.weights.values(),axes):
-            ax[0].plot(gradient)
-            ax[1].plot(weight)
-            ax[0].set_title(f'{layer_name}, gradient')
-            ax[1].set_title(f'{layer_name}, weight')
