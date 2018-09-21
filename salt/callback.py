@@ -13,14 +13,17 @@ class GradientLogger(CallBack):
         self.writer = writer
 
     def on_batch_end(self, loss, model):
-        if self.iter % 10 == 0:
-            for layer_name, layer in self.layers.items():
-                weights = []
-                children = leaves(layer)
-                for each in children:
-                    if hasattr(each, 'weight') and each.__class__.__name__[:9] != 'BatchNorm':
-                        weights.append(each.weight.view(-1))
-                weight = torch.cat(weights).cpu().detach().numpy()
-                self.writer.add_histogram(f'{layer_name}_weight', weight, self.iter)
+        for layer_name, layer in self.layers.items():
+            grad_mean = []
+            grad_std = []
+            children = leaves(layer)
+            for each in children:
+                if hasattr(each, 'weight') and each.__class__.__name__[:9] != 'BatchNorm':
+                    grad_mean.append(each.weight.grad.mean().item())
+                    grad_std.append(each.weight.grad.std().item())
+            grad_mean = np.array(grad_mean).mean()
+            grad_std = np.array(grad_std).mean()
+            self.writer.add_scalar(f'{layer_name}_grad_mean', grad_mean, self.iter)
+            self.writer.add_scalar(f'{layer_name}_grad_std', grad_std, self.iter)
         self.iter += 1
 

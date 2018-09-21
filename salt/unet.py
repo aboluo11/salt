@@ -24,6 +24,7 @@ def _percent(x):
     b = _mul(x.shape)
     return (a/b).item()
 
+
 class FinalConv(nn.Module):
     def __init__(self, final_c, writer):
         super().__init__()
@@ -44,7 +45,7 @@ class FinalConv(nn.Module):
 class UnetBlock(nn.Module):
     def __init__(self, feature_c, x_c, out_c, drop, writer, layer_num):
         """input channel size: feature_c, x_c
-        output channel size: feature_c
+        output channel size: out_c
         """
         super().__init__()
         self.upconv1 = nn.ConvTranspose2d(x_c, x_c, kernel_size=3, stride=2, padding=1, bias=False)
@@ -131,4 +132,7 @@ class Dynamic(nn.Module):
                 self.handles[i].remove()
         self.features = []
         self.upmodel = nn.Sequential(upmodel)
+
+        # final_c = x.shape[1]
+
         self.final_conv = FinalConv(final_c, self.writer)
