@@ -1,4 +1,5 @@
 from lightai.imps import *
+from .log import *
 
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
@@ -25,7 +26,7 @@ class BasicBlock(nn.Module):
         self.bn2 = nn.BatchNorm2d(planes)
         self.downsample = downsample
         self.stride = stride
-        self.drop = nn.Dropout2d(drop)
+        # self.drop = nn.Dropout2d(drop)
         self.writer = writer
         self.layer_num = layer_num
         self.block_num = block_num
@@ -35,7 +36,7 @@ class BasicBlock(nn.Module):
         out = self.conv1(x)
         out = self.bn1(out)
         out = self.relu(out)
-        out = self.drop(out)
+        # out = self.drop(out)
         out = self.conv2(out)
         out = self.bn2(out)
         if self.downsample is not None:
@@ -43,11 +44,8 @@ class BasicBlock(nn.Module):
         out += residual
         out = self.relu(out)
 
-        if self.writer and global_step and self.block_num == 3:
-            grad_mean = self.conv2.weight.grad.mean()
-            grad_std = self.conv2.weight.grad.std()
-            self.writer.add_scalar(f'encoder_layer{self.layer_num}_grad_mean', grad_mean, global_step)
-            self.writer.add_scalar(f'encoder_layer{self.layer_num}_grad_std', grad_std, global_step)
+        if self.writer and self.block_num == 3:
+            log_grad(writer=self.writer, model=self.conv2, tag=f'encoder_layer{self.layer_num}', global_step=global_step)
 
         return out
 
