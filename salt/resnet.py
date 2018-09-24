@@ -16,7 +16,7 @@ def conv3x3(in_planes, out_planes, stride=1):
 
 
 class BasicBlock(nn.Module):
-    def __init__(self, inplanes, planes, drop, stride=1, downsample=None):
+    def __init__(self, inplanes, planes, drop, layer_num, block_num, stride=1, downsample=None, writer=None):
         super().__init__()
         self.conv1 = conv3x3(inplanes, planes, stride)
         self.bn1 = nn.BatchNorm2d(planes)
@@ -26,8 +26,11 @@ class BasicBlock(nn.Module):
         self.downsample = downsample
         self.stride = stride
         self.drop = nn.Dropout2d(drop)
+        self.writer = writer
+        self.layer_num = layer_num
+        self.block_num = block_num
 
-    def forward(self, x):
+    def forward(self, x, global_step):
         residual = x
         out = self.conv1(x)
         out = self.bn1(out)
@@ -39,6 +42,13 @@ class BasicBlock(nn.Module):
             residual = self.downsample(x)
         out += residual
         out = self.relu(out)
+
+        if self.writer and global_step and self.block_num == 3:
+            grad_mean = self.conv2.weight.grad.mean()
+            grad_std = self.conv2.weight.grad.std()
+            self.writer.add_scalar(f'encoder_layer{self.layer_num}_grad_mean', grad_mean, global_step)
+            self.writer.add_scalar(f'encoder_layer{self.layer_num}_grad_std', grad_std, global_step)
+
         return out
 
 
@@ -50,20 +60,31 @@ class ConvBlock(nn.Module):
 
     def forward(self, x):
         x = self.conv(x)
-        x = torch.relu(x)
         x = self.bn(x)
+        x = torch.relu(x)
+        return x
+
+
+class MySequential(nn.Module):
+    def __init__(self, *models):
+        super().__init__()
+        self.models = nn.ModuleList(models)
+
+    def forward(self, x, global_step):
+        for model in self.models:
+            x = model(x, global_step)
         return x
 
 
 class ResNet(nn.Module):
-    def __init__(self, layers, block, drop):
+    def __init__(self, layers, block, drop, writer=None):
         self.inplanes = 32
         super().__init__()
         self.conv1 = ConvBlock(1, 32, 7, stride=1, padding=3)
-        self.layer1 = self._make_layer(block, 64, layers[0], drop, stride=2)
-        self.layer2 = self._make_layer(block, 128, layers[1], drop, stride=2)
-        self.layer3 = self._make_layer(block, 256, layers[2], drop, stride=2)
-        self.layer4 = self._make_layer(block, 512, layers[3], drop, stride=2)
+        self.layer1 = self._make_layer(block, 64, layers[0], drop, writer, 1, stride=2)
+        self.layer2 = self._make_layer(block, 128, layers[1], drop, writer, 2, stride=2)
+        self.layer3 = self._make_layer(block, 256, layers[2], drop, writer, 3, stride=2)
+        self.layer4 = self._make_layer(block, 512, layers[3], drop, writer, 4, stride=2)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -72,7 +93,7 @@ class ResNet(nn.Module):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
 
-    def _make_layer(self, block, planes, blocks, drop, stride=1):
+    def _make_layer(self, block, planes, n_blocks, drop, writer, layer_num, stride=1):
         downsample = None
         if stride != 1:
             downsample = nn.Sequential(
@@ -80,19 +101,19 @@ class ResNet(nn.Module):
                           kernel_size=1, stride=stride, bias=False),
                 nn.BatchNorm2d(planes),
             )
-        layers = []
-        layers.append(block(self.inplanes, planes, drop, stride, downsample))
+        blocks = []
+        blocks.append(block(self.inplanes, planes, drop, layer_num, 1, stride, downsample, writer=writer))
         self.inplanes = planes
-        for i in range(1, blocks):
-            layers.append(block(self.inplanes, planes, drop))
-        return nn.Sequential(*layers)
+        for i in range(1, n_blocks):
+            blocks.append(block(self.inplanes, planes, drop, layer_num, i+1, writer=writer))
+        return MySequential(*blocks)
 
-    def forward(self, x):
+    def forward(self, x, global_step):
         x = self.conv1(x)
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.layer4(x)
+        x = self.layer1(x, global_step)
+        x = self.layer2(x, global_step)
+        x = self.layer3(x, global_step)
+        x = self.layer4(x, global_step)
         return x
 
 def resnet18(**kwargs):

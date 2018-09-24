@@ -35,8 +35,6 @@ class FinalConv(nn.Module):
 
     def forward(self, x, global_step=None):
         x = self.conv1(x)
-        if global_step is not None:
-            self.writer.add_scalar('final_conv_percentage', _percent(x), global_step)
         x = torch.relu(x)
         x = self.bn(x)
         x = self.conv2(x)
@@ -48,25 +46,32 @@ class UnetBlock(nn.Module):
         output channel size: out_c
         """
         super().__init__()
-        self.upconv1 = nn.ConvTranspose2d(x_c, x_c, kernel_size=3, stride=2, padding=1, bias=False)
-        self.conv1 = nn.Conv2d(feature_c + x_c, out_c, kernel_size=3, stride=1, padding=1, bias=False)
+        self.upconv1 = nn.ConvTranspose2d(x_c, x_c, kernel_size=3, stride=2, padding=1)
+        self.conv1 = nn.Conv2d(feature_c + x_c, out_c, kernel_size=3, stride=1, padding=1)
         self.bn1 = nn.BatchNorm2d(feature_c + x_c)
         self.bn2 = nn.BatchNorm2d(out_c)
-        self.drop = nn.Dropout2d(drop)
+        # self.drop = nn.Dropout2d(drop)
         self.writer = writer
         self.layer_num = layer_num
 
     def forward(self, feature, x, global_step=None):
         out = self.upconv1(x, output_size=feature.shape)
+        # out = F.interpolate(x, size=list(feature.shape[-2:]), mode='bilinear', align_corners=False)
+        # feature = self.bn1(torch.relu(feature))
         out = self.bn1(torch.relu(torch.cat([out, feature], dim=1)))
-        out = self.drop(out)
+        # out = self.drop(out)
         out = self.conv1(out)
         out = self.bn2(torch.relu(out))
+
+        if self.writer and global_step:
+            self.writer.add_scalar(f'decode_layer{self.layer_num}_grad_mean', self.conv1.weight.grad.mean(), global_step)
+            self.writer.add_scalar(f'decode_layer{self.layer_num}_grad_std', self.conv1.weight.grad.std(), global_step)
+
         return out
 
 
 class Dynamic(nn.Module):
-    def __init__(self, encoder, ds, drop, linear_drop, writer):
+    def __init__(self, encoder, ds, drop, linear_drop, writer=None):
         super().__init__()
         self.bn_input = nn.BatchNorm2d(1)
         self.encoder = encoder
@@ -86,7 +91,7 @@ class Dynamic(nn.Module):
         return [mask, has_salt(logit)]
         """
         x = self.bn_input(x)
-        x = self.encoder(x)
+        x = self.encoder(x, global_step)
 
         has_salt = x.view(x.shape[0], -1)
         has_salt = self.linear_drop1(has_salt)
@@ -114,7 +119,7 @@ class Dynamic(nn.Module):
     def dummy_forward(self, x, drop):
         with torch.no_grad():
             self.encoder.eval()
-            x = self.encoder(x)
+            x = self.encoder(x, None)
         self.linear1 = nn.Linear(x.shape[1] * x.shape[2] * x.shape[3], 256)
         self.linear2 = nn.Linear(256, 1)
         upmodel = OrderedDict()
