@@ -1,0 +1,9 @@
+cp /data/inputs.zip inputs.zip
+unzip -d inputs.zip inputs > /dev/null
+rm inputs.zip
+git clone https://github.com/aboluo11/lightai.git
+git clone https://github.com/aboluo11/salt.git
+mv salt salt_source
+ln -s salt_source salt
+pip install tensorboardX
+mkdir model
