@@ -1,5 +1,6 @@
 from lightai.imps import *
 from .log import *
+from .unet import ChannelGate, SpatialGate
 
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
@@ -30,6 +31,8 @@ class BasicBlock(nn.Module):
         self.writer = writer
         self.layer_num = layer_num
         self.block_num = block_num
+        self.channel_gate = ChannelGate(planes)
+        self.spatial_gate = SpatialGate(planes)
 
     def forward(self, x, global_step):
         residual = x
@@ -43,6 +46,10 @@ class BasicBlock(nn.Module):
             residual = self.downsample(x)
         out += residual
         out = self.relu(out)
+
+        g1 = self.channel_gate(out)
+        g2 = self.spatial_gate(out)
+        out = (g1 + g2) * out
 
         if self.writer and self.block_num == 3:
             log_grad(writer=self.writer, model=self.conv2, tag=f'encoder_layer{self.layer_num}', global_step=global_step)
