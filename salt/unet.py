@@ -116,7 +116,7 @@ class UnetBlock(nn.Module):
         out = (g1 + g2) * out
 
         if self.writer:
-            if global_step and global_step%10==0:
+            if global_step and global_step%20==0:
                 self.writer.add_histogram(f'{self.tag}_channel_gate', g1, global_step)
                 self.writer.add_histogram(f'{self.tag}_spatial_gate', g2, global_step)
 
@@ -148,10 +148,7 @@ class Dynamic(nn.Module):
         hyper_columns = []
         for i, (feature, block) in enumerate(zip(reversed(self.features), self.upmodel)):
             x = block(feature, x, global_step)
-            if x.shape[-1] != 101:
-                hyper_columns.append(F.interpolate(x, size=101, mode='bilinear', align_corners=False))
-            else:
-                hyper_columns.append(x)
+            hyper_columns.append(F.interpolate(x, size=101, mode='bilinear', align_corners=False))
         self.features = []
         x = torch.cat(hyper_columns, dim=1)
         x = self.final_conv(x, global_step)
