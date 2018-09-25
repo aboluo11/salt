@@ -83,9 +83,9 @@ class MySequential(nn.Module):
 
 class ResNet(nn.Module):
     def __init__(self, layers, block, drop, writer=None):
-        self.inplanes = 32
+        self.inplanes = 64
         super().__init__()
-        self.conv1 = ConvBlock(1, 32, 7, stride=1, padding=3)
+        self.conv1 = ConvBlock(1, 64, 7, stride=1, padding=3)
         self.layer1 = self._make_layer(block, 64, layers[0], drop, writer, 1, stride=2)
         self.layer2 = self._make_layer(block, 128, layers[1], drop, writer, 2, stride=2)
         self.layer3 = self._make_layer(block, 256, layers[2], drop, writer, 3, stride=2)
@@ -122,7 +122,11 @@ class ResNet(nn.Module):
         return x
 
 def resnet18(**kwargs):
-    return ResNet(layers=[2,2,2,2],block=BasicBlock,**kwargs)
+    model = ResNet(layers=[2,2,2,2],block=BasicBlock,**kwargs)
+    state_dict = model_zoo.load_url(model_urls['resnet18'])
+    state_dict.pop('conv1.weight')
+    model.load_state_dict(state_dict)
+    return model
 
 def resnet34(**kwargs):
     return ResNet(layers=[3,4,6,3], block=BasicBlock, **kwargs)

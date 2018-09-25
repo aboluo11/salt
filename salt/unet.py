@@ -53,6 +53,17 @@ class SpatialGate(nn.Module):
         x = torch.sigmoid(x)
         return x
 
+class ConvBlock(nn.Module):
+    def __init__(self, in_c, out_c, kernel_size, stride, padding=0):
+        super().__init__()
+        self.conv = nn.Conv2d(in_c, out_c, kernel_size, stride=stride, padding=padding, bias=False)
+        self.bn = nn.BatchNorm2d(out_c)
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.bn(x)
+        x = torch.relu(x)
+        return x
 
 class FinalConv(nn.Module):
     def __init__(self, final_c, writer):
@@ -121,13 +132,22 @@ class UnetBlock(nn.Module):
 
 
 class Dynamic(nn.Module):
-    def __init__(self, encoder, ds, drop, linear_drop, writer=None):
+    def __init__(self, ds, drop, linear_drop, writer=None):
         super().__init__()
         self.bn_input = nn.BatchNorm2d(1)
-        self.encoder = encoder
+        resnet = torchvision.models.resnet18(pretrained=True)
+        self.encoder1 = ConvBlock(1, 64, 7, stride=1, padding=3)
+        self.encoder2 = nn.Sequential(
+            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+            resnet.layer1,
+        )
+        self.encoder3 = resnet.layer2
+        self.encoder4 = resnet.layer3
+        self.encoder5 = resnet.layer4
+        self.encoder = nn.Sequential(self.encoder1, self.encoder2, self.encoder3, self.encoder4, self.encoder5)
         self.features = []
         self.handles = []
-        for m in _leaves(encoder):
+        for m in _leaves(self.encoder):
             handle = m.register_forward_pre_hook(lambda module, input: self.features.append(input[0]))
             self.handles.append(handle)
         self.writer = writer
@@ -138,7 +158,7 @@ class Dynamic(nn.Module):
         return [mask, has_salt(logit)]
         """
         x = self.bn_input(x)
-        x = self.encoder(x, global_step)
+        x = self.encoder(x)
 
         has_salt = self.has_salt(x)
 
@@ -157,7 +177,7 @@ class Dynamic(nn.Module):
     def dummy_forward(self, x, drop):
         with torch.no_grad():
             self.encoder.eval()
-            x = self.encoder(x, None)
+            x = self.encoder(x)
         self.has_salt = HasSalt(x.shape[1] * x.shape[2] * x.shape[3])
         upmodel = OrderedDict()
         final_c = 0
