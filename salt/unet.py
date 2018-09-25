@@ -98,6 +98,7 @@ class UnetBlock(nn.Module):
         self.layer_num = layer_num
         self.channel_gate = ChannelGate(out_c)
         self.spatial_gate = SpatialGate(out_c)
+        self.tag = f'decode_layer{layer_num}'
 
     def forward(self, feature, x, global_step=None):
         out = self.upconv1(x, output_size=feature.shape)
@@ -111,7 +112,9 @@ class UnetBlock(nn.Module):
         out = (g1 + g2) * out
 
         if self.writer:
-            log_grad(writer=self.writer, model=self.conv1, tag=f'decode_layer{self.layer_num}', global_step=global_step)
+            if global_step and global_step%10==0:
+                self.writer.add_histogram(f'{self.tag}_channel_gate', g1, global_step)
+                self.writer.add_histogram(f'{self.tag}_spatial_gate', g2, global_step)
 
         return out
 
