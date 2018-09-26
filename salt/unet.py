@@ -26,34 +26,6 @@ def _percent(x):
     b = _mul(x.shape)
     return (a/b).item()
 
-class ChannelGate(nn.Module):
-    def __init__(self, in_c):
-        super().__init__()
-        self.linear1 = nn.Linear(in_c, in_c//2)
-        self.linear2 = nn.Linear(in_c//2, in_c)
-        self.bn = nn.BatchNorm1d(in_c//2)
-
-    def forward(self, x):
-        x = x.view(*(x.shape[:2]), -1)
-        x = torch.mean(x, dim=2)
-        x = self.linear1(x)
-        x = torch.relu(x)
-        x = self.bn(x)
-        x = self.linear2(x)
-        x = torch.sigmoid(x)
-        x = x.view(*x.shape, 1, 1)
-        return x
-
-class SpatialGate(nn.Module):
-    def __init__(self, in_c):
-        super().__init__()
-        self.conv1 = nn.Conv2d(in_c, in_c, 1)
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = torch.sigmoid(x)
-        return x
-
 class ConvBlock(nn.Module):
     def __init__(self, in_c, out_c, kernel_size, stride, padding=0):
         super().__init__()
