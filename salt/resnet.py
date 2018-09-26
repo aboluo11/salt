@@ -1,6 +1,5 @@
 from lightai.imps import *
 from .log import *
-from .unet import ChannelGate, SpatialGate
 
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
