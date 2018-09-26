@@ -105,10 +105,10 @@ class UnetBlock(nn.Module):
 
 
 class Dynamic(nn.Module):
-    def __init__(self, ds, drop, linear_drop, writer=None):
+    def __init__(self, resnet, ds, drop, linear_drop, writer=None):
         super().__init__()
         self.bn_input = nn.BatchNorm2d(1)
-        resnet = resnet18(pretrained=True)
+        resnet = resnet(pretrained=True)
         self.encoder1 = ConvBlock(1, 64, 7, stride=1, padding=3)
         # self.encoder2 = nn.Sequential(
         #     nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
