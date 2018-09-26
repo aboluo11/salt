@@ -137,7 +137,7 @@ class Dynamic(nn.Module):
         super().__init__()
         self.bn_input = nn.BatchNorm2d(1)
         resnet = resnet18(pretrained=True)
-        self.encoder1 = ConvBlock(1, 64, 7, stride=1, padding=3)
+        self.encoder1 = ConvBlock(1, 32, 7, stride=1, padding=3)
         # self.encoder2 = nn.Sequential(
         #     nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
         #     resnet.layer1,
