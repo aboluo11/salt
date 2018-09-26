@@ -74,9 +74,9 @@ class BasicBlock(nn.Module):
         out += residual
         out = self.relu(out)
 
-        g1 = self.channel_gate(out)
-        g2 = self.spatial_gate(out)
-        out = (g1 + g2) * out
+        # g1 = self.channel_gate(out)
+        # g2 = self.spatial_gate(out)
+        # out = (g1 + g2) * out
 
         return out
 

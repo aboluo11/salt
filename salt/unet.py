@@ -92,9 +92,9 @@ class UnetBlock(nn.Module):
         out = self.conv1(out)
         out = self.bn2(torch.relu(out))
 
-        g1 = self.channel_gate(out)
-        g2 = self.spatial_gate(out)
-        out = (g1 + g2) * out
+        # g1 = self.channel_gate(out)
+        # g2 = self.spatial_gate(out)
+        # out = (g1 + g2) * out
 
         if self.writer:
             if global_step and global_step%20==0:
