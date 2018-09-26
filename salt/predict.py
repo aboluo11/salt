@@ -74,5 +74,5 @@ def get_test_data(tta_tsfms: List):
 
     test_ds = TestDataset(tsfm=tsfm, tta_tsfms=tta_tsfms)
     test_sampler = BatchSampler(test_ds, 128)
-    test_dl = DataLoader(test_sampler, n_worker=4)
+    test_dl = DataLoader(test_sampler)
     return test_dl
