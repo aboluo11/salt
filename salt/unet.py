@@ -137,10 +137,11 @@ class Dynamic(nn.Module):
         self.bn_input = nn.BatchNorm2d(1)
         resnet = torchvision.models.resnet18(pretrained=True)
         self.encoder1 = ConvBlock(1, 64, 7, stride=1, padding=3)
-        self.encoder2 = nn.Sequential(
-            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
-            resnet.layer1,
-        )
+        # self.encoder2 = nn.Sequential(
+        #     nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+        #     resnet.layer1,
+        # )
+        self.encoder2 = resnet.layer1
         self.encoder3 = resnet.layer2
         self.encoder4 = resnet.layer3
         self.encoder5 = resnet.layer4
