@@ -58,7 +58,7 @@ class BasicBlock(nn.Module):
 class ResNet(nn.Module):
 
     def __init__(self, block, layers, num_classes=1000):
-        self.inplanes = 32
+        self.inplanes = 64
         super(ResNet, self).__init__()
         self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
                                bias=False)
@@ -123,7 +123,7 @@ def resnet18(pretrained=False, **kwargs):
     model = ResNet(BasicBlock, [2, 2, 2, 2], **kwargs)
     if pretrained:
         state_dict = model_zoo.load_url(model_urls['resnet18'])
-        state_dict['layer1.0.conv1.weight'] = state_dict['layer1.0.conv1.weight'][:, ::2]
+        # state_dict['layer1.0.conv1.weight'] = state_dict['layer1.0.conv1.weight'][:, ::2]
         model.load_state_dict(state_dict, strict=False)
     return model
 
