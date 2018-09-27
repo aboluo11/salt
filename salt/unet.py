@@ -81,8 +81,7 @@ class UnetBlock(nn.Module):
         # self.drop = nn.Dropout2d(drop)
         self.writer = writer
         self.layer_num = layer_num
-        self.channel_gate = ChannelGate(out_c)
-        self.spatial_gate = SpatialGate(out_c)
+        self.sc = SCBlock(out_c)
         self.tag = f'decode_layer{layer_num}'
 
     def forward(self, feature, x, global_step=None):
@@ -95,6 +94,7 @@ class UnetBlock(nn.Module):
         # g1 = self.channel_gate(out)
         # g2 = self.spatial_gate(out)
         # out = (g1 + g2) * out
+        out = self.sc(out)
 
         if self.writer:
             if global_step and global_step%20==0:

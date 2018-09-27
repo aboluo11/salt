@@ -12,9 +12,10 @@ model_urls = {
 class ChannelGate(nn.Module):
     def __init__(self, in_c):
         super().__init__()
-        self.linear1 = nn.Linear(in_c, in_c//2)
-        self.linear2 = nn.Linear(in_c//2, in_c)
-        self.bn = nn.BatchNorm1d(in_c//2)
+        r = 16
+        self.linear1 = nn.Linear(in_c, in_c//r)
+        self.linear2 = nn.Linear(in_c//r, in_c)
+        self.bn = nn.BatchNorm1d(in_c//r)
 
     def forward(self, x):
         x = x.view(*(x.shape[:2]), -1)
@@ -30,12 +31,23 @@ class ChannelGate(nn.Module):
 class SpatialGate(nn.Module):
     def __init__(self, in_c):
         super().__init__()
-        self.conv1 = nn.Conv2d(in_c, in_c, 1)
+        self.conv1 = nn.Conv2d(in_c, 1, 1)
 
     def forward(self, x):
         x = self.conv1(x)
         x = torch.sigmoid(x)
         return x
+
+class SCBlock(nn.Module):
+    def __init__(self, in_c):
+        super().__init__()
+        self.spatial_gate = SpatialGate(in_c)
+        self.channel_gate = ChannelGate(in_c)
+
+    def forward(self, x):
+        g1 = self.spatial_gate(x)
+        g2 = self.channel_gate(x)
+        return (g1 + g2) * x
 
 def conv3x3(in_planes, out_planes, stride=1):
     """3x3 convolution with padding"""
@@ -55,8 +67,6 @@ class BasicBlock(nn.Module):
         self.bn2 = nn.BatchNorm2d(planes)
         self.downsample = downsample
         self.stride = stride
-        self.channel_gate = ChannelGate(planes)
-        self.spatial_gate = SpatialGate(planes)
 
     def forward(self, x):
         residual = x
@@ -73,10 +83,6 @@ class BasicBlock(nn.Module):
 
         out += residual
         out = self.relu(out)
-
-        # g1 = self.channel_gate(out)
-        # g2 = self.spatial_gate(out)
-        # out = (g1 + g2) * out
 
         return out
 
@@ -119,6 +125,8 @@ class ResNet(nn.Module):
         self.inplanes = planes * block.expansion
         for i in range(1, blocks):
             layers.append(block(self.inplanes, planes))
+
+        layers.append(SCBlock(planes))
 
         return nn.Sequential(*layers)
 
