@@ -91,7 +91,7 @@ class UnetBlock(nn.Module):
         out = self.conv1(out)
         out = self.bn2(torch.relu(out))
 
-        # out = self.sc(out)
+        out = self.sc(out)
 
         return out
 

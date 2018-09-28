@@ -67,6 +67,7 @@ class BasicBlock(nn.Module):
         self.bn2 = nn.BatchNorm2d(planes)
         self.downsample = downsample
         self.stride = stride
+        self.sc = SCBlock(planes)
 
     def forward(self, x):
         residual = x
@@ -83,6 +84,8 @@ class BasicBlock(nn.Module):
 
         out += residual
         out = self.relu(out)
+
+        out = self.sc(out)
 
         return out
 
