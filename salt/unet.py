@@ -131,19 +131,31 @@ class Dynamic(nn.Module):
         """
         return [mask, has_salt(logit)]
         """
+        bs = x.shape[0]
+        res = torch.zeros(bs, 1, *(x.shape[-2:]), device='cuda')
+
         x = self.bn_input(x)
         x = self.encoder(x)
 
         has_salt = self.has_salt(x)
 
+        has_salt_index = torch.sigmoid(has_salt) > 0.5
+        if has_salt_index.any():
+            x = x[has_salt_index]
+        else:
+            return res, has_salt
+
         hyper_columns = []
         for i, (feature, block) in enumerate(zip(reversed(self.features), self.upmodel)):
-            x = block(feature, x, global_step)
+            x = block(feature[has_salt_index], x, global_step)
             hyper_columns.append(F.interpolate(x, size=101, mode='bilinear', align_corners=False))
         self.features = []
         x = torch.cat(hyper_columns, dim=1)
         x = self.final_conv(x, global_step)
-        return x, has_salt
+
+        res[has_salt_index] = x
+
+        return res, has_salt
 
     def get_layer_groups(self):
         return [[self.encoder], [self.upmodel, self.final_conv]]

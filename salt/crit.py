@@ -10,13 +10,13 @@ class Crit:
 
     def __call__(self, predict, target):
         """
-        predict: [mask(logit), has_salt(logit)]
+        predict: [mask(logit) if at least one target has salt, else None, has_salt(logit)]
         target: mask
         """
         bs = target.shape[0]
         p_mask, p_has_salt = predict
-        has_salt_index = target.byte().view(bs, -1).any(dim=1)
-        t_has_salt = has_salt_index.float()
+        has_salt_index = torch.sigmoid(p_has_salt) > 0.5
+        t_has_salt = target.byte().view(bs, -1).any(dim=1).float()
         has_salt_loss = self.has_salt_loss(p_has_salt, t_has_salt)
         if has_salt_index.any():
             mask_loss = self.mask_loss(p_mask[has_salt_index], target[has_salt_index])

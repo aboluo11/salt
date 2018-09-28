@@ -18,11 +18,11 @@ def tta_mean_predict(predicts: List, reverse_tta: List):
         p_mask = predict[0]
         if f:
             p_mask = f(p_mask)
-        has_salt_index: torch.Tensor = torch.sigmoid(predict[1]) > 0.5
+        has_salt_index = torch.sigmoid(predict[1]) > 0.5
         if has_salt_index.any():
             p_mask[has_salt_index] = torch.sigmoid(p_mask[has_salt_index])
-        if (~has_salt_index).any():
-            p_mask[~has_salt_index] = torch.zeros_like(p_mask[0], dtype=torch.float32, device='cuda')
+        # if (~has_salt_index).any():
+        #     p_mask[~has_salt_index] = torch.zeros_like(p_mask[0], dtype=torch.float32, device='cuda')
         p_masks.append(p_mask)
     return torch.stack(p_masks).mean(dim=0)
 
