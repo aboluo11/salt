@@ -126,7 +126,7 @@ class ResNet(nn.Module):
         for i in range(1, blocks):
             layers.append(block(self.inplanes, planes))
 
-        layers.append(SCBlock(planes))
+        # layers.append(SCBlock(planes))
 
         return nn.Sequential(*layers)
 
