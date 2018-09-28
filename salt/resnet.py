@@ -12,20 +12,20 @@ model_urls = {
 class ChannelGate(nn.Module):
     def __init__(self, in_c):
         super().__init__()
-        r = 16
+        r = 2
         self.linear1 = nn.Linear(in_c, in_c//r)
         self.linear2 = nn.Linear(in_c//r, in_c)
-        self.bn = nn.BatchNorm1d(in_c//r)
+        # self.bn = nn.BatchNorm1d(in_c//r)
 
     def forward(self, x):
         x = x.view(*(x.shape[:2]), -1)
         x = torch.mean(x, dim=2)
         x = self.linear1(x)
         x = torch.relu(x)
-        x = self.bn(x)
+        # x = self.bn(x)
         x = self.linear2(x)
-        x = torch.sigmoid(x)
         x = x.view(*x.shape, 1, 1)
+        x = torch.sigmoid(x)
         return x
 
 class SpatialGate(nn.Module):
