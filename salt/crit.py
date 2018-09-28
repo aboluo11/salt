@@ -15,9 +15,10 @@ class Crit:
         """
         bs = target.shape[0]
         p_mask, p_has_salt = predict
-        has_salt_index = torch.sigmoid(p_has_salt) > 0.5
-        t_has_salt = target.byte().view(bs, -1).any(dim=1).float()
-        has_salt_loss = self.has_salt_loss(p_has_salt, t_has_salt)
+        p_has_salt_index = torch.sigmoid(p_has_salt) > 0.5
+        t_has_salt_index = target.byte().view(bs, -1).any(dim=1)
+        has_salt_loss = self.has_salt_loss(p_has_salt, t_has_salt_index.float())
+        has_salt_index = p_has_salt_index * t_has_salt_index
         if has_salt_index.any():
             mask_loss = self.mask_loss(p_mask[has_salt_index], target[has_salt_index])
         else:
@@ -32,7 +33,7 @@ def get_weight(gt_sorted):
     union = gts + (1 - gt_sorted).cumsum(1)
     iou = intersection.float() / union.float()
     delta = 1 - iou
-    delta[:, 1:] = delta[:, 1:] - delta[:, 0:-1]
+    delta[:, 1:] = delta[:, 1:] - delta[:, :-1]
     return delta
 
 
