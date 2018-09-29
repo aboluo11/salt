@@ -1,5 +1,6 @@
 from lightai.imps import *
 from .log import *
+from .block import *
 
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
@@ -8,46 +9,6 @@ model_urls = {
     'resnet101': 'https://download.pytorch.org/models/resnet101-5d3b4d8f.pth',
     'resnet152': 'https://download.pytorch.org/models/resnet152-b121ed2d.pth',
 }
-
-class ChannelGate(nn.Module):
-    def __init__(self, in_c):
-        super().__init__()
-        r = 2
-        self.linear1 = nn.Linear(in_c, in_c//r)
-        self.linear2 = nn.Linear(in_c//r, in_c)
-        # self.bn = nn.BatchNorm1d(in_c//r)
-
-    def forward(self, x):
-        x = x.view(*(x.shape[:2]), -1)
-        x = torch.mean(x, dim=2)
-        x = self.linear1(x)
-        x = torch.relu(x)
-        # x = self.bn(x)
-        x = self.linear2(x)
-        x = x.view(*x.shape, 1, 1)
-        x = torch.sigmoid(x)
-        return x
-
-class SpatialGate(nn.Module):
-    def __init__(self, in_c):
-        super().__init__()
-        self.conv1 = nn.Conv2d(in_c, 1, 1)
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = torch.sigmoid(x)
-        return x
-
-class SCBlock(nn.Module):
-    def __init__(self, in_c):
-        super().__init__()
-        self.spatial_gate = SpatialGate(in_c)
-        self.channel_gate = ChannelGate(in_c)
-
-    def forward(self, x):
-        g1 = self.spatial_gate(x)
-        g2 = self.channel_gate(x)
-        return (g1 + g2) * x
 
 def conv3x3(in_planes, out_planes, stride=1):
     """3x3 convolution with padding"""
@@ -67,7 +28,7 @@ class BasicBlock(nn.Module):
         self.bn2 = nn.BatchNorm2d(planes)
         self.downsample = downsample
         self.stride = stride
-        self.sc = SCBlock(planes)
+        # self.sc = SCBlock(planes)
 
     def forward(self, x):
         residual = x
@@ -85,7 +46,7 @@ class BasicBlock(nn.Module):
         out += residual
         out = self.relu(out)
 
-        out = self.sc(out)
+        # out = self.sc(out)
 
         return out
 
@@ -128,8 +89,6 @@ class ResNet(nn.Module):
         self.inplanes = planes * block.expansion
         for i in range(1, blocks):
             layers.append(block(self.inplanes, planes))
-
-        # layers.append(SCBlock(planes))
 
         return nn.Sequential(*layers)
 

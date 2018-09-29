@@ -2,6 +2,8 @@ from lightai.imps import *
 from tensorboardX import SummaryWriter
 from .log import *
 from .resnet import *
+from .block import *
+from .object_context import *
 
 
 def _leaves(model):
@@ -26,30 +28,16 @@ def _percent(x):
     b = _mul(x.shape)
     return (a/b).item()
 
-class ConvBlock(nn.Module):
-    def __init__(self, in_c, out_c, kernel_size, stride, padding=0):
-        super().__init__()
-        self.conv = nn.Conv2d(in_c, out_c, kernel_size, stride=stride, padding=padding, bias=False)
-        self.bn = nn.BatchNorm2d(out_c)
-
-    def forward(self, x):
-        x = self.conv(x)
-        x = self.bn(x)
-        x = torch.relu(x)
-        return x
 
 class FinalConv(nn.Module):
     def __init__(self, final_c, writer):
         super().__init__()
-        self.conv1 = nn.Conv2d(final_c, 64, kernel_size=3, padding=1)
+        self.conv1 = ConvBlock(final_c, 64, kernel_size=3, padding=1)
         self.conv2 = nn.Conv2d(64, 1, kernel_size=1)
-        self.bn = nn.BatchNorm2d(64)
         self.writer = writer
 
     def forward(self, x, global_step=None):
         x = self.conv1(x)
-        x = torch.relu(x)
-        x = self.bn(x)
         x = self.conv2(x)
         return x
 
@@ -74,24 +62,22 @@ class UnetBlock(nn.Module):
         output channel size: out_c
         """
         super().__init__()
-        self.upconv1 = nn.ConvTranspose2d(x_c, x_c, kernel_size=3, stride=2, padding=1)
-        self.conv1 = nn.Conv2d(feature_c + x_c, out_c, kernel_size=3, stride=1, padding=1)
-        self.bn1 = nn.BatchNorm2d(feature_c + x_c)
-        self.bn2 = nn.BatchNorm2d(out_c)
-        # self.drop = nn.Dropout2d(drop)
+        # self.upconv1 = nn.ConvTranspose2d(x_c, x_c, kernel_size=3, stride=2, padding=1)
+        self.conv1 = ConvBlock(feature_c + x_c, out_c, kernel_size=3, stride=1, padding=1)
+        self.conv2 = ConvBlock(out_c, out_c, kernel_size=3, stride=1, padding=1)
         self.writer = writer
         self.layer_num = layer_num
-        self.sc = SCBlock(out_c)
+        # self.sc = SCBlock(out_c)
         self.tag = f'decode_layer{layer_num}'
 
     def forward(self, feature, x, global_step=None):
-        out = self.upconv1(x, output_size=feature.shape)
-        out = self.bn1(torch.relu(torch.cat([out, feature], dim=1)))
-        # out = self.drop(out)
+        # out = self.upconv1(x, output_size=feature.shape)
+        out = F.interpolate(x, size=list(feature.shape[-2:]), mode='bilinear', align_corners=False)
+        out = torch.cat([out, feature], dim=1)
         out = self.conv1(out)
-        out = self.bn2(torch.relu(out))
+        out = self.conv2(out)
 
-        out = self.sc(out)
+        # out = self.sc(out)
 
         return out
 
@@ -133,10 +119,15 @@ class Dynamic(nn.Module):
         else:
             return res, has_salt
 
-        hyper_columns = []
+        x = self.ob_context(x)
+        hyper_columns = [x]
+
         for i, (feature, block) in enumerate(zip(reversed(self.features), self.upmodel)):
             x = block(feature[has_salt_index], x, global_step)
-            hyper_columns.append(F.interpolate(x, size=101, mode='bilinear', align_corners=False))
+            hyper_columns.append(x)
+        for i in range(len(hyper_columns)):
+            hyper_columns[i] = F.interpolate(hyper_columns[i], size=101, mode='bilinear', align_corners=False)
+
         self.features = []
         x = torch.cat(hyper_columns, dim=1)
         x = self.final_conv(x, global_step)
@@ -152,21 +143,27 @@ class Dynamic(nn.Module):
         with torch.no_grad():
             self.encoder.eval()
             x = self.encoder(x)
-        self.has_salt = HasSalt(x.shape[1] * x.shape[2] * x.shape[3])
-        upmodel = OrderedDict()
-        final_c = 0
-        decoder_count = 0
-        for i in reversed(range(len(self.features))):
-            feature = self.features[i]
-            if feature.shape[2] != x.shape[2]:
-                decoder_count += 1
-                block = UnetBlock(feature.shape[1], x.shape[1], 64, drop, self.writer, decoder_count)
-                block.eval()
-                x = block(feature, x)
-                upmodel[f'decoder_layer{decoder_count}'] = block
-                final_c += x.shape[1]
-            else:
-                self.handles[i].remove()
-        self.features = []
-        self.upmodel = nn.Sequential(upmodel)
-        self.final_conv = FinalConv(final_c, self.writer)
+
+            self.has_salt = HasSalt(x.shape[1] * x.shape[2] * x.shape[3])
+
+            self.ob_context = ObjectContext(x.shape[1], key_c=256, value_c=256, out_c=64)
+            self.ob_context.eval()
+            x = self.ob_context(x)
+
+            upmodel = OrderedDict()
+            final_c = 64
+            decoder_count = 0
+            for i in reversed(range(len(self.features))):
+                feature = self.features[i]
+                if feature.shape[2] != x.shape[2]:
+                    decoder_count += 1
+                    block = UnetBlock(feature.shape[1], x.shape[1], 64, drop, self.writer, decoder_count)
+                    block.eval()
+                    x = block(feature, x)
+                    upmodel[f'decoder_layer{decoder_count}'] = block
+                    final_c += x.shape[1]
+                else:
+                    self.handles[i].remove()
+            self.features = []
+            self.upmodel = nn.Sequential(upmodel)
+            self.final_conv = FinalConv(final_c, self.writer)
