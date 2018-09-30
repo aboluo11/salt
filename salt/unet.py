@@ -63,8 +63,9 @@ class UnetBlock(nn.Module):
         """
         super().__init__()
         # self.upconv1 = nn.ConvTranspose2d(x_c, x_c, kernel_size=3, stride=2, padding=1)
-        self.conv1 = ConvBlock(feature_c + x_c, out_c, kernel_size=3, stride=1, padding=1)
-        self.conv2 = ConvBlock(out_c, out_c, kernel_size=3, stride=1, padding=1)
+        self.ob_context = ObjectContext(in_c=x_c, key_c=x_c//2, value_c=x_c//2, out_c=x_c)
+        self.conv1 = ConvBlock(feature_c+x_c, feature_c, kernel_size=3, stride=1, padding=1)
+        self.conv2 = ConvBlock(feature_c, out_c, kernel_size=3, stride=1, padding=1)
         self.writer = writer
         self.layer_num = layer_num
         # self.sc = SCBlock(out_c)
@@ -72,7 +73,8 @@ class UnetBlock(nn.Module):
 
     def forward(self, feature, x, global_step=None):
         # out = self.upconv1(x, output_size=feature.shape)
-        out = F.interpolate(x, size=list(feature.shape[-2:]), mode='bilinear', align_corners=False)
+        out = self.ob_context(x)
+        out = F.interpolate(out, size=list(feature.shape[-2:]), mode='bilinear', align_corners=False)
         out = torch.cat([out, feature], dim=1)
         out = self.conv1(out)
         out = self.conv2(out)
@@ -85,9 +87,9 @@ class UnetBlock(nn.Module):
 class Dynamic(nn.Module):
     def __init__(self, resnet, ds, drop, linear_drop, writer=None):
         super().__init__()
-        self.bn_input = nn.BatchNorm2d(1)
+        self.bn_input = nn.BatchNorm2d(2)
         resnet = resnet(pretrained=True)
-        self.encoder1 = ConvBlock(1, 64, 7, stride=1, padding=3)
+        self.encoder1 = ConvBlock(2, 64, 7, stride=1, padding=3)
         self.encoder2 = resnet.layer1
         self.encoder3 = resnet.layer2
         self.encoder4 = resnet.layer3
@@ -119,12 +121,11 @@ class Dynamic(nn.Module):
         else:
             return res, has_salt
 
-        x = self.ob_context(x)
-        hyper_columns = [x]
-
-        for i, (feature, block) in enumerate(zip(reversed(self.features), self.upmodel)):
+        hyper_columns = []
+        for i, (feature, [block, ob_context]) in enumerate(zip(reversed(self.features), self.upmodel)):
             x = block(feature[has_salt_index], x, global_step)
             hyper_columns.append(x)
+
         for i in range(len(hyper_columns)):
             hyper_columns[i] = F.interpolate(hyper_columns[i], size=101, mode='bilinear', align_corners=False)
 
@@ -146,12 +147,8 @@ class Dynamic(nn.Module):
 
             self.has_salt = HasSalt(x.shape[1] * x.shape[2] * x.shape[3])
 
-            self.ob_context = ObjectContext(x.shape[1], key_c=256, value_c=256, out_c=64)
-            self.ob_context.eval()
-            x = self.ob_context(x)
-
             upmodel = OrderedDict()
-            final_c = 64
+            final_c = 0
             decoder_count = 0
             for i in reversed(range(len(self.features))):
                 feature = self.features[i]
@@ -160,7 +157,7 @@ class Dynamic(nn.Module):
                     block = UnetBlock(feature.shape[1], x.shape[1], 64, drop, self.writer, decoder_count)
                     block.eval()
                     x = block(feature, x)
-                    upmodel[f'decoder_layer{decoder_count}'] = block
+                    upmodel[f'decoder_layer{decoder_count}'] =block
                     final_c += x.shape[1]
                 else:
                     self.handles[i].remove()

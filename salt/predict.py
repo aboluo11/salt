@@ -3,7 +3,7 @@ from lightai.imps import *
 from lightai.sampler import BatchSampler
 
 from salt.dataset import TestDataset
-from salt.transform import hflip
+from salt.transform import *
 
 
 def tta_mean_predict(predicts: List, reverse_tta: List):
@@ -68,9 +68,10 @@ def get_test_data(tta_tsfms: List):
     def tsfm(img):
         img = np.asarray(img).astype(np.float32) / 255
         img = np.expand_dims(img, 0)
+        img = add_depth(img)
         return img
 
     test_ds = TestDataset(tsfm=tsfm, tta_tsfms=tta_tsfms)
-    test_sampler = BatchSampler(test_ds, 128)
+    test_sampler = BatchSampler(test_ds, 48)
     test_dl = DataLoader(test_sampler)
     return test_dl

@@ -16,6 +16,7 @@ class Attention(nn.Module):
 
         w = self.key(x).view(bs, self.key_c, -1)
         w = torch.matmul(w.permute(0, 2, 1), w)
+        w = w / self.key_c**0.5
         w = F.softmax(w, dim=-1)
 
         value = self.value(x).view(bs, self.value_c, -1).permute(0, 2, 1)

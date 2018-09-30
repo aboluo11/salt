@@ -37,6 +37,21 @@ def sample_hflip(sample):
     return [img, mask]
 
 
+def add_depth(sample):
+    is_sample = False
+    if isinstance(sample, (list, tuple)):
+        img, mask = sample
+        is_sample = True
+    else:
+        img = sample
+    _, h, w = img.shape
+    img = np.stack([img[0], np.tile(np.linspace(0,1,w),[w,1]).T])
+    if is_sample:
+        return img, mask
+    else:
+        return img
+
+
 class MyColorJitter(ColorJitter):
     def __call__(self, sample):
         img, mask = sample
