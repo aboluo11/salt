@@ -122,7 +122,7 @@ class Dynamic(nn.Module):
             return res, has_salt
 
         hyper_columns = []
-        for i, (feature, [block, ob_context]) in enumerate(zip(reversed(self.features), self.upmodel)):
+        for i, (feature, block) in enumerate(zip(reversed(self.features), self.upmodel)):
             x = block(feature[has_salt_index], x, global_step)
             hyper_columns.append(x)
 
