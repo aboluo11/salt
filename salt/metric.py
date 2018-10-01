@@ -6,23 +6,19 @@ class Score:
     support tta
     """
 
-    def __init__(self, writer):
+    def __init__(self, writer, reverse_ttas):
         self.scores = []
         self.writer = writer
+        self.reverse_ttas = reverse_ttas
 
-    def __call__(self, predicts, target: torch.Tensor, reverse_ttas: Optional[List] = None):
+    def __call__(self, predicts, target: torch.Tensor):
         """
         :param predicts: list of predicts or predict if no tta.
             predict: tta [mask, has_salt], all items are logit tensor
         :param target: mask, logit tensor
-        :param reverse_ttas: list of function apply to predicted mask in predict or None.
-            If None: no tta.
         calculate a batch of predicts' scores, shape: [batch_size], and add it to self.scores
         """
-        if not reverse_ttas:
-            predicts = [predicts]
-            reverse_ttas = [None]
-        p_mask = tta_mean_predict(predicts, reverse_ttas)
+        p_mask = tta_mean_predict(predicts, self.reverse_ttas)
         s = get_score(p_mask, target)
         self.scores.append(s)
 
