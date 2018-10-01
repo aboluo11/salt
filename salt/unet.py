@@ -109,7 +109,7 @@ class Dynamic(nn.Module):
         self.writer = writer
         self.dummy_forward(T(ds[0][0], cuda=False).unsqueeze(0), drop)
 
-        self.encoder1.conv.weight = torch.nn.Parameter(resnet.conv1.weight.mean(dim=1, keepdim=True))
+        self.encoder1.conv.weight.data = resnet.conv1.weight.data.mean(dim=1, keepdim=True)
 
     def forward(self, x, global_step=None):
         """
