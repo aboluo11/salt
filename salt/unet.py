@@ -141,7 +141,7 @@ class Dynamic(nn.Module):
         return res, has_salt
 
     def get_layer_groups(self):
-        return [[self.encoder], [self.upmodel, self.final_conv]]
+        return [self.encoder[1:], [self.encoder1, self.upmodel, self.final_conv, self.has_salt]]
 
     def dummy_forward(self, x, drop):
         with torch.no_grad():
