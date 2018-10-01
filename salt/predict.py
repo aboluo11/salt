@@ -68,7 +68,7 @@ def get_test_data(tta_tsfms: List, bs):
     def tsfm(img):
         img = np.asarray(img).astype(np.float32) / 255
         img = np.expand_dims(img, 0)
-        img = add_depth(img)
+        # img = add_depth(img)
         return img
 
     test_ds = TestDataset(tsfm=tsfm, tta_tsfms=tta_tsfms)

@@ -28,7 +28,6 @@ class BasicBlock(nn.Module):
         self.bn2 = nn.BatchNorm2d(planes)
         self.downsample = downsample
         self.stride = stride
-        # self.sc = SCBlock(planes)
 
     def forward(self, x):
         residual = x
@@ -45,8 +44,6 @@ class BasicBlock(nn.Module):
 
         out += residual
         out = self.relu(out)
-
-        # out = self.sc(out)
 
         return out
 
@@ -89,6 +86,8 @@ class ResNet(nn.Module):
         self.inplanes = planes * block.expansion
         for i in range(1, blocks):
             layers.append(block(self.inplanes, planes))
+
+        layers.append(SCBlock(planes))
 
         return nn.Sequential(*layers)
 

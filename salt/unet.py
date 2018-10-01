@@ -4,6 +4,7 @@ from .log import *
 from .resnet import *
 from .block import *
 from .object_context import *
+from .gcn import *
 
 
 def _leaves(model):
@@ -44,52 +45,51 @@ class FinalConv(nn.Module):
 class HasSalt(nn.Module):
     def __init__(self, in_c):
         super().__init__()
-        self.linear1 = nn.Linear(in_c, 256)
-        self.linear2 = nn.Linear(256, 1)
-        self.bn = nn.BatchNorm1d(256)
+        self.linear1 = nn.Linear(in_c, 1)
+        # self.linear2 = nn.Linear(256, 1)
+        # self.bn = nn.BatchNorm1d(256)
 
     def forward(self, x):
         x = x.view(x.shape[0], -1)
         x = self.linear1(x)
-        x = self.bn(torch.relu(x))
-        x = self.linear2(x)
+        # x = self.bn(torch.relu(x))
+        # x = self.linear2(x)
         x = x.view(-1)
         return x
 
 class UnetBlock(nn.Module):
-    def __init__(self, feature_c, x_c, out_c, drop, writer, layer_num):
+    def __init__(self, feature_c, x_c, out_c, feature_width, drop, writer, layer_num):
         """input channel size: feature_c, x_c
         output channel size: out_c
         """
         super().__init__()
-        # self.upconv1 = nn.ConvTranspose2d(x_c, x_c, kernel_size=3, stride=2, padding=1)
-        self.ob_context = ObjectContext(in_c=x_c, key_c=x_c//2, value_c=x_c//2, out_c=x_c)
-        self.conv1 = ConvBlock(feature_c+x_c, feature_c, kernel_size=3, stride=1, padding=1)
-        self.conv2 = ConvBlock(feature_c, out_c, kernel_size=3, stride=1, padding=1)
+        self.gcn = GCN(feature_c, out_c, feature_width)
+        self.upconv = nn.ConvTranspose2d(x_c, out_c, kernel_size=3, stride=2, padding=1)
+        self.br = BR(out_c)
+        self.ob_context = ObjectContext(in_c=feature_c, key_c=feature_c//2, value_c=feature_c//2, out_c=feature_c)
+        self.sc = SCBlock(out_c)
+        # self.conv1 = ConvBlock(feature_c+x_c, feature_c, kernel_size=3, stride=1, padding=1)
+        # self.conv2 = ConvBlock(feature_c, out_c, kernel_size=3, stride=1, padding=1)
         self.writer = writer
         self.layer_num = layer_num
-        # self.sc = SCBlock(out_c)
         self.tag = f'decode_layer{layer_num}'
 
     def forward(self, feature, x, global_step=None):
-        # out = self.upconv1(x, output_size=feature.shape)
-        out = self.ob_context(x)
-        out = F.interpolate(out, size=list(feature.shape[-2:]), mode='bilinear', align_corners=False)
-        out = torch.cat([out, feature], dim=1)
-        out = self.conv1(out)
-        out = self.conv2(out)
-
-        # out = self.sc(out)
-
+        feature = self.ob_context(feature)
+        feature = self.gcn(feature)
+        x = self.upconv(x, output_size=feature.shape)
+        # out = F.interpolate(out, size=list(feature.shape[-2:]), mode='bilinear', align_corners=False)
+        out = self.br(x + feature)
+        out = self.sc(out)
         return out
 
 
 class Dynamic(nn.Module):
     def __init__(self, resnet, ds, drop, linear_drop, writer=None):
         super().__init__()
-        self.bn_input = nn.BatchNorm2d(2)
+        self.bn_input = nn.BatchNorm2d(1)
         resnet = resnet(pretrained=True)
-        self.encoder1 = ConvBlock(2, 64, 7, stride=1, padding=3)
+        self.encoder1 = ConvBlock(1, 64, 7, stride=1, padding=3)
         self.encoder2 = resnet.layer1
         self.encoder3 = resnet.layer2
         self.encoder4 = resnet.layer3
@@ -97,7 +97,7 @@ class Dynamic(nn.Module):
         self.encoder = nn.Sequential(self.encoder1, self.encoder2, self.encoder3, self.encoder4, self.encoder5)
         self.features = []
         self.handles = []
-        for m in _leaves(self.encoder):
+        for m in self.encoder.children():
             handle = m.register_forward_pre_hook(lambda module, input: self.features.append(input[0]))
             self.handles.append(handle)
         self.writer = writer
@@ -154,7 +154,7 @@ class Dynamic(nn.Module):
                 feature = self.features[i]
                 if feature.shape[2] != x.shape[2]:
                     decoder_count += 1
-                    block = UnetBlock(feature.shape[1], x.shape[1], 64, drop, self.writer, decoder_count)
+                    block = UnetBlock(feature.shape[1], x.shape[1], 21, feature.shape[-1], drop, self.writer, decoder_count)
                     block.eval()
                     x = block(feature, x)
                     upmodel[f'decoder_layer{decoder_count}'] =block
