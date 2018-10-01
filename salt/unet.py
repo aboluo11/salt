@@ -64,25 +64,28 @@ class UnetBlock(nn.Module):
         """
         super().__init__()
         self.feature_width = feature_width
-        self.gcn = GCN(feature_c, out_c, 7)
-        self.upconv = nn.ConvTranspose2d(x_c, out_c, kernel_size=3, stride=2, padding=1)
-        self.br = BR(out_c)
-        if self.feature_width != 101:
-            self.ob_context = ObjectContext(in_c=feature_c, key_c=feature_c//2, value_c=feature_c//2, out_c=feature_c)
+        # self.gcn = GCN(feature_c, feature_c, 7)
+        self.upconv = nn.ConvTranspose2d(x_c, x_c, kernel_size=3, stride=2, padding=1)
+        # self.br1 = BR(out_c)
+        # self.br2 = BR(out_c)
+        # if self.feature_width != 101:
+        #     self.ob_context = ObjectContext(in_c=feature_c, key_c=feature_c//2, value_c=feature_c//2, out_c=feature_c)
         # self.sc = SCBlock(out_c)
-        # self.conv1 = ConvBlock(feature_c+x_c, feature_c, kernel_size=3, stride=1, padding=1)
-        # self.conv2 = ConvBlock(feature_c, out_c, kernel_size=3, stride=1, padding=1)
+        self.conv1 = ConvBlock(feature_c+x_c, feature_c, kernel_size=3, stride=1, padding=1)
+        self.conv2 = ConvBlock(feature_c, out_c, kernel_size=3, stride=1, padding=1)
         self.writer = writer
         self.layer_num = layer_num
         self.tag = f'decode_layer{layer_num}'
 
     def forward(self, feature, x, global_step=None):
-        if self.feature_width != 101:
-            feature = self.ob_context(feature)
-        feature = self.gcn(feature)
+        # if self.feature_width != 101:
+        #     feature = self.ob_context(feature)
+        # feature = self.gcn(feature)
+        # feature = self.br1(feature)
         x = self.upconv(x, output_size=feature.shape)
         # out = F.interpolate(out, size=list(feature.shape[-2:]), mode='bilinear', align_corners=False)
-        out = self.br(x + feature)
+        out = self.conv1(torch.cat([x, feature], dim=1))
+        out = self.conv2(out)
         # out = self.sc(out)
         return out
 
@@ -106,7 +109,7 @@ class Dynamic(nn.Module):
         self.writer = writer
         self.dummy_forward(T(ds[0][0], cuda=False).unsqueeze(0), drop)
 
-        # self.encoder1.conv.weight = torch.nn.Parameter(resnet.conv1.weight.mean(dim=1, keepdim=True))
+        self.encoder1.conv.weight = torch.nn.Parameter(resnet.conv1.weight.mean(dim=1, keepdim=True))
 
     def forward(self, x, global_step=None):
         """
