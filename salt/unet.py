@@ -64,7 +64,7 @@ class UnetBlock(nn.Module):
         """
         super().__init__()
         self.feature_width = feature_width
-        self.gcn = GCN(feature_c, out_c, feature_width)
+        self.gcn = GCN(feature_c, out_c, 7)
         self.upconv = nn.ConvTranspose2d(x_c, out_c, kernel_size=3, stride=2, padding=1)
         self.br = BR(out_c)
         if self.feature_width != 101:
@@ -106,7 +106,7 @@ class Dynamic(nn.Module):
         self.writer = writer
         self.dummy_forward(T(ds[0][0], cuda=False).unsqueeze(0), drop)
 
-        self.encoder1.conv.weight = torch.nn.Parameter(resnet.conv1.weight.mean(dim=1, keepdim=True))
+        # self.encoder1.conv.weight = torch.nn.Parameter(resnet.conv1.weight.mean(dim=1, keepdim=True))
 
     def forward(self, x, global_step=None):
         """
@@ -159,7 +159,7 @@ class Dynamic(nn.Module):
                 feature = self.features[i]
                 if feature.shape[2] != x.shape[2]:
                     decoder_count += 1
-                    block = UnetBlock(feature.shape[1], x.shape[1], 21, feature.shape[-1], drop, self.writer, decoder_count)
+                    block = UnetBlock(feature.shape[1], x.shape[1], 64, feature.shape[-1], drop, self.writer, decoder_count)
                     block.eval()
                     x = block(feature, x)
                     upmodel[f'decoder_layer{decoder_count}'] =block
