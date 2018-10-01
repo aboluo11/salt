@@ -69,7 +69,7 @@ class UnetBlock(nn.Module):
         self.br = BR(out_c)
         if self.feature_width != 101:
             self.ob_context = ObjectContext(in_c=feature_c, key_c=feature_c//2, value_c=feature_c//2, out_c=feature_c)
-        self.sc = SCBlock(out_c)
+        # self.sc = SCBlock(out_c)
         # self.conv1 = ConvBlock(feature_c+x_c, feature_c, kernel_size=3, stride=1, padding=1)
         # self.conv2 = ConvBlock(feature_c, out_c, kernel_size=3, stride=1, padding=1)
         self.writer = writer
@@ -83,7 +83,7 @@ class UnetBlock(nn.Module):
         x = self.upconv(x, output_size=feature.shape)
         # out = F.interpolate(out, size=list(feature.shape[-2:]), mode='bilinear', align_corners=False)
         out = self.br(x + feature)
-        out = self.sc(out)
+        # out = self.sc(out)
         return out
 
 
@@ -105,6 +105,8 @@ class Dynamic(nn.Module):
             self.handles.append(handle)
         self.writer = writer
         self.dummy_forward(T(ds[0][0], cuda=False).unsqueeze(0), drop)
+
+        self.encoder1.conv.weight = torch.nn.Parameter(resnet.conv1.weight.mean(dim=1, keepdim=True))
 
     def forward(self, x, global_step=None):
         """
@@ -141,7 +143,7 @@ class Dynamic(nn.Module):
         return res, has_salt
 
     def get_layer_groups(self):
-        return [self.encoder[1:], [self.encoder1, self.upmodel, self.final_conv, self.has_salt]]
+        return [self.encoder, [self.upmodel, self.final_conv, self.has_salt]]
 
     def dummy_forward(self, x, drop):
         with torch.no_grad():
