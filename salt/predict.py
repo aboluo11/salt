@@ -25,12 +25,12 @@ def tta_mean_predict(predicts: List, reverse_tta: List):
     return torch.stack(p_masks).mean(dim=0)
 
 
-def predict_test(models: List, tta_tsfms: List = [None, hflip], reverse_tta: List = [None, hflip]):
+def predict_test(models: List, tta_tsfms: List = [None, hflip], reverse_tta: List = [None, hflip], bs = 48):
     """
     :param reverse_tta: apply to predicted mask
     """
     submit = pd.read_csv('inputs/sample_submission.csv')
-    test_dl = get_test_data(tta_tsfms)
+    test_dl = get_test_data(tta_tsfms, bs)
     for model in models:
         model.eval()
     with torch.no_grad():
@@ -64,7 +64,7 @@ def rl_enc(img):
     return ' '.join(str(x) for x in res)
 
 
-def get_test_data(tta_tsfms: List):
+def get_test_data(tta_tsfms: List, bs):
     def tsfm(img):
         img = np.asarray(img).astype(np.float32) / 255
         img = np.expand_dims(img, 0)
@@ -72,6 +72,6 @@ def get_test_data(tta_tsfms: List):
         return img
 
     test_ds = TestDataset(tsfm=tsfm, tta_tsfms=tta_tsfms)
-    test_sampler = BatchSampler(test_ds, 48)
+    test_sampler = BatchSampler(test_ds, bs)
     test_dl = DataLoader(test_sampler)
     return test_dl
