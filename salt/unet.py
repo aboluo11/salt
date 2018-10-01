@@ -63,10 +63,12 @@ class UnetBlock(nn.Module):
         output channel size: out_c
         """
         super().__init__()
+        self.feature_width = feature_width
         self.gcn = GCN(feature_c, out_c, feature_width)
         self.upconv = nn.ConvTranspose2d(x_c, out_c, kernel_size=3, stride=2, padding=1)
         self.br = BR(out_c)
-        self.ob_context = ObjectContext(in_c=feature_c, key_c=feature_c//2, value_c=feature_c//2, out_c=feature_c)
+        if self.feature_width != 101:
+            self.ob_context = ObjectContext(in_c=feature_c, key_c=feature_c//2, value_c=feature_c//2, out_c=feature_c)
         self.sc = SCBlock(out_c)
         # self.conv1 = ConvBlock(feature_c+x_c, feature_c, kernel_size=3, stride=1, padding=1)
         # self.conv2 = ConvBlock(feature_c, out_c, kernel_size=3, stride=1, padding=1)
@@ -75,7 +77,8 @@ class UnetBlock(nn.Module):
         self.tag = f'decode_layer{layer_num}'
 
     def forward(self, feature, x, global_step=None):
-        feature = self.ob_context(feature)
+        if self.feature_width != 101:
+            feature = self.ob_context(feature)
         feature = self.gcn(feature)
         x = self.upconv(x, output_size=feature.shape)
         # out = F.interpolate(out, size=list(feature.shape[-2:]), mode='bilinear', align_corners=False)

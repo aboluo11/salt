@@ -10,10 +10,12 @@ class GCN(nn.Module):
         self.conv2 = ConvBlock(out_c, out_c, kernel_size=(1, k), padding=(0, k//2))
         self.conv3 = ConvBlock(in_c, out_c, kernel_size=(1, k), padding=(0, k//2))
         self.conv4 = ConvBlock(out_c, out_c, kernel_size=(k, 1), padding=(k//2, 0))
+        self.conv5 = ConvBlock(in_c, out_c, kernel_size=1)
 
     def forward(self, x):
         x1 = self.conv2(self.conv1(x))
         x2 = self.conv4(self.conv3(x))
+        x = self.conv5(x)
         return x1 + x2 + x
 
 
