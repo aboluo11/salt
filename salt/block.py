@@ -44,13 +44,14 @@ class ChannelGate(nn.Module):
 class SpatialGate(nn.Module):
     def __init__(self, in_c):
         super().__init__()
+        self.in_c = in_c
         self.conv1 = nn.Conv2d(in_c, 1, 1)
         # self.bn = nn.BatchNorm2d(in_c)
 
     def forward(self, x):
         origin = x
         x = self.conv1(x)
-        x = x / (in_c**0.5)
+        x = x / (self.in_c**0.5)
         x = torch.sigmoid(x)
         x = x * origin
         # x = torch.relu(self.bn(x))
