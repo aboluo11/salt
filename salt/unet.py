@@ -95,7 +95,7 @@ class Dynamic(nn.Module):
             handle = m.register_forward_pre_hook(lambda module, input: self.features.append(input[0]))
             self.handles.append(handle)
         self.writer = writer
-        self.dummy_forward(T(ds[0][0], cuda=False).unsqueeze(0), drop)
+        self.dummy_forward(T(ds[0][0]).unsqueeze(0), drop)
 
         self.encoder1.conv.weight.data = resnet.conv1.weight.data.mean(dim=1, keepdim=True)
 
@@ -140,6 +140,7 @@ class Dynamic(nn.Module):
 
     def dummy_forward(self, x, drop):
         with torch.no_grad():
+            self.encoder.cuda()
             self.encoder.eval()
             x = self.encoder(x)
 
@@ -159,6 +160,7 @@ class Dynamic(nn.Module):
                 if feature.shape[2] != x.shape[2]:
                     decoder_count += 1
                     block = UnetBlock(feature.shape[1], x.shape[1], 64, feature.shape[-1], drop, self.writer, decoder_count)
+                    block.cuda()
                     block.eval()
                     x = block(feature, x)
                     upmodel[f'decoder_layer{decoder_count}'] =block
