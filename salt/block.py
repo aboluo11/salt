@@ -2,15 +2,19 @@ from lightai.imps import *
 
 
 class ConvBlock(nn.Module):
-    def __init__(self, in_c, out_c, kernel_size, stride=1, padding=0):
+    def __init__(self, in_c, out_c, kernel_size, stride=1, padding=0, activation='relu'):
         super().__init__()
         self.conv = nn.Conv2d(in_c, out_c, kernel_size, stride=stride, padding=padding, bias=False)
         self.bn = nn.BatchNorm2d(out_c)
+        if activation == 'relu':
+            self.activation = torch.relu
+        elif activation == 'leaky':
+            self.activation = nn.LeakyReLU()
 
     def forward(self, x):
         x = self.conv(x)
         x = self.bn(x)
-        x = torch.relu(x)
+        x = self.activation(x)
         return x
 
 
