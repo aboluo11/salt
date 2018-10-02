@@ -23,6 +23,7 @@ class ChannelGate(nn.Module):
         # self.bn = nn.BatchNorm1d(in_c//r)
 
     def forward(self, x):
+        origin = x
         x = x.view(*(x.shape[:2]), -1)
         x = torch.mean(x, dim=2)
         x = self.linear1(x)
@@ -31,6 +32,7 @@ class ChannelGate(nn.Module):
         x = self.linear2(x)
         x = x.view(*x.shape, 1, 1)
         x = torch.sigmoid(x)
+        x = x * origin
         return x
 
 
@@ -40,8 +42,10 @@ class SpatialGate(nn.Module):
         self.conv1 = nn.Conv2d(in_c, 1, 1)
 
     def forward(self, x):
+        origin = x
         x = self.conv1(x)
         x = torch.sigmoid(x)
+        x = x * origin
         return x
 
 
@@ -52,6 +56,6 @@ class SCBlock(nn.Module):
         self.channel_gate = ChannelGate(in_c)
 
     def forward(self, x):
-        g1 = self.spatial_gate(x)
-        g2 = self.channel_gate(x)
-        return (g1 + g2) * x
+        x1 = self.spatial_gate(x)
+        x2 = self.channel_gate(x)
+        return x1 + x2
