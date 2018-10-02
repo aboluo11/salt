@@ -9,8 +9,8 @@ class ConvBlock(nn.Module):
 
     def forward(self, x):
         x = self.conv(x)
-        x = self.bn(x)
         x = torch.relu(x)
+        x = self.bn(x)
         return x
 
 
@@ -20,7 +20,7 @@ class ChannelGate(nn.Module):
         r = 2
         self.linear1 = nn.Linear(in_c, in_c//r)
         self.linear2 = nn.Linear(in_c//r, in_c)
-        # self.bn = nn.BatchNorm1d(in_c//r)
+        self.bn = nn.BatchNorm2d(in_c)
 
     def forward(self, x):
         origin = x
@@ -33,19 +33,22 @@ class ChannelGate(nn.Module):
         x = x.view(*x.shape, 1, 1)
         x = torch.sigmoid(x)
         x = x * origin
+        x = torch.relu(self.bn(x))
         return x
 
 
 class SpatialGate(nn.Module):
     def __init__(self, in_c):
         super().__init__()
-        self.conv1 = nn.Conv2d(in_c, 1, 1)
+        self.conv1 = ConvBlock(in_c, 1, 1)
+        # self.bn = nn.BatchNorm2d(in_c)
 
     def forward(self, x):
         origin = x
         x = self.conv1(x)
         x = torch.sigmoid(x)
         x = x * origin
+        # x = torch.relu(self.bn(x))
         return x
 
 
