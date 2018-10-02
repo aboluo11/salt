@@ -101,8 +101,6 @@ class Dynamic(nn.Module):
 
         self.encoder1.conv.weight.data = resnet.conv1.weight.data.mean(dim=1, keepdim=True)
 
-        self.avgpool = nn.AdaptiveAvgPool2d(1)
-
     def forward(self, x, global_step=None):
         """
         return [mask, has_salt(logit)]
@@ -114,8 +112,6 @@ class Dynamic(nn.Module):
         x = self.encoder(x)
 
         has_salt = self.has_salt(x)
-
-        x = x + self.avgpool(x)
 
         has_salt_index = torch.sigmoid(has_salt) > 0.5
         if has_salt_index.any():
