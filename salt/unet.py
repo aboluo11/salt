@@ -45,15 +45,15 @@ class FinalConv(nn.Module):
 class HasSalt(nn.Module):
     def __init__(self, in_c):
         super().__init__()
-        self.linear1 = nn.Linear(in_c, 1)
-        # self.linear2 = nn.Linear(256, 1)
-        # self.bn = nn.BatchNorm1d(256)
+        self.linear1 = nn.Linear(in_c, 256)
+        self.linear2 = nn.Linear(256, 1)
+        self.bn = nn.BatchNorm1d(256)
 
     def forward(self, x):
         x = x.view(x.shape[0], -1)
         x = self.linear1(x)
-        # x = self.bn(torch.relu(x))
-        # x = self.linear2(x)
+        x = self.bn(torch.relu(x))
+        x = self.linear2(x)
         x = x.view(-1)
         return x
 
@@ -64,8 +64,8 @@ class UnetBlock(nn.Module):
         """
         super().__init__()
         self.feature_width = feature_width
-        self.upconv = nn.ConvTranspose2d(x_c, feature_c, kernel_size=3, stride=2, padding=1)
-        self.conv1 = ConvBlock(feature_c*2, feature_c, kernel_size=3, stride=1, padding=1)
+        self.upconv = nn.ConvTranspose2d(x_c, x_c, kernel_size=3, stride=2, padding=1)
+        self.conv1 = ConvBlock(feature_c + x_c, feature_c, kernel_size=3, stride=1, padding=1)
         self.conv2 = ConvBlock(feature_c, out_c, kernel_size=3, stride=1, padding=1)
         self.writer = writer
         self.layer_num = layer_num
