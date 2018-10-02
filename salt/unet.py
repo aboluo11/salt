@@ -72,9 +72,15 @@ class UnetBlock(nn.Module):
         self.tag = f'decode_layer{layer_num}'
         self.sc = SCBlock(out_c)
 
+        self.ob_context = ObjectContext(feature_c, feature_c//2, feature_c//2, feature_c)
+
     def forward(self, feature, x, global_step=None):
         x = self.upconv(x, output_size=feature.shape)
         out = self.conv1(torch.cat([x, feature], dim=1))
+
+        if self.feature_width != 101:
+            out = self.ob_context(out)
+
         out = self.conv2(out)
         out = self.sc(out)
         return out
