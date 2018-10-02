@@ -65,13 +65,13 @@ class UnetBlock(nn.Module):
         super().__init__()
         self.feature_width = feature_width
         # self.gcn = GCN(feature_c, feature_c, 7)
-        self.upconv = nn.ConvTranspose2d(x_c, x_c, kernel_size=3, stride=2, padding=1)
+        self.upconv = nn.ConvTranspose2d(x_c, feature_c, kernel_size=3, stride=2, padding=1)
         # self.br1 = BR(out_c)
         # self.br2 = BR(out_c)
         # if self.feature_width != 101:
         #     self.ob_context = ObjectContext(in_c=feature_c, key_c=feature_c//2, value_c=feature_c//2, out_c=feature_c)
         # self.sc = SCBlock(out_c)
-        self.conv1 = ConvBlock(feature_c+x_c, feature_c, kernel_size=3, stride=1, padding=1)
+        self.conv1 = ConvBlock(feature_c*2, feature_c, kernel_size=3, stride=1, padding=1)
         self.conv2 = ConvBlock(feature_c, out_c, kernel_size=3, stride=1, padding=1)
         self.writer = writer
         self.layer_num = layer_num
