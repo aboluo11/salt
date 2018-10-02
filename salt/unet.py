@@ -70,11 +70,13 @@ class UnetBlock(nn.Module):
         self.writer = writer
         self.layer_num = layer_num
         self.tag = f'decode_layer{layer_num}'
+        self.sc = SCBlock(out_c)
 
     def forward(self, feature, x, global_step=None):
         x = self.upconv(x, output_size=feature.shape)
         out = self.conv1(torch.cat([x, feature], dim=1))
         out = self.conv2(out)
+        out = self.sc(out)
         return out
 
 
