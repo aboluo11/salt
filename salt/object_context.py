@@ -7,8 +7,8 @@ class Attention(nn.Module):
         super().__init__()
         self.key_c = key_c
         self.value_c = value_c
-        self.key = ConvBlock(in_c, key_c, kernel_size=3, activation='leaky', padding=1)
-        self.query = ConvBlock(in_c, key_c, kernel_size=3, activation='leaky', padding=1)
+        self.key = ConvBlock(in_c+2, key_c, kernel_size=1, activation='leaky', padding=0)
+        self.query = ConvBlock(in_c+2, key_c, kernel_size=1, activation='leaky', padding=0)
         # self.value = ConvBlock(in_c, value_c, kernel_size=1)
         # self.conv1 = ConvBlock(value_c, in_c, kernel_size=1)
 
@@ -16,9 +16,9 @@ class Attention(nn.Module):
         bs, channel, height, width = x.shape
         value = x
 
-        p_row = torch.linspace(0, 1, steps=height, device='cuda').expand(height, -1).transpose(0, 1)
-        p_column = torch.linspace(0, 1, steps=width, device='cuda').expand(width, -1)
-        x = x + p_row + p_column
+        p_row = torch.linspace(0, 1, steps=height, device='cuda').expand(bs, 1, height, -1).transpose(2, 3)
+        p_column = torch.linspace(0, 1, steps=width, device='cuda').expand(bs, 1, width, -1)
+        x = torch.cat([x, p_row, p_column], dim=1)
 
         w1 = self.key(x).view(bs, self.key_c, -1)
         w2 = self.query(x).view(bs, self.key_c, -1)
