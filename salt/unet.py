@@ -76,7 +76,6 @@ class FuseImg(nn.Module):
         x = x.view(bs, -1)
         x = self.linear(x)
         x = self.bn(torch.relu(x))
-        x = x.view(bs, -1)
         return x
 
 
@@ -117,7 +116,6 @@ class Dynamic(nn.Module):
         self.encoder4 = resnet.layer3
         self.encoder5 = resnet.layer4
         self.encoder = nn.Sequential(self.encoder1, self.encoder2, self.encoder3, self.encoder4, self.encoder5)
-        self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.features = []
         self.handles = []
         for m in self.encoder.children():
