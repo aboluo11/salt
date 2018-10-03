@@ -30,31 +30,52 @@ def _percent(x):
     return (a/b).item()
 
 
+class Fuse(nn.Module):
+    def __init__(self, in_c):
+        super().__init__()
+        self.conv1 = ConvBlock(in_c, in_c//2, kernel_size=1)
+        self.conv2 = nn.Conv2d(in_c//2, 1, kernel_size=1)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.conv2(x)
+        return x
+
+
 class LogitPixel(nn.Module):
     def __init__(self, in_c, writer):
         super().__init__()
-        self.conv1 = ConvBlock(in_c, 64, kernel_size=3, padding=1)
-        self.conv2 = nn.Conv2d(64, 1, kernel_size=1)
+        self.conv1 = nn.Conv2d(in_c, 1, kernel_size=1)
         self.writer = writer
 
     def forward(self, x, global_step=None):
         x = self.conv1(x)
-        x = self.conv2(x)
         return x
 
 class LogitImg(nn.Module):
     def __init__(self, in_c):
         super().__init__()
-        self.linear1 = nn.Linear(in_c, 64)
-        self.linear2 = nn.Linear(64, 1)
-        self.bn = nn.BatchNorm1d(64)
+        self.linear1 = nn.Linear(in_c, 1)
 
     def forward(self, x):
-        x = x.view(x.shape[0], -1)
         x = self.linear1(x)
-        x = self.bn(torch.relu(x))
-        x = self.linear2(x)
         x = x.view(-1)
+        return x
+
+
+class FuseImg(nn.Module):
+    def __init__(self, in_c, out_c):
+        super().__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.linear = nn.Linear(in_c, out_c)
+        self.bn = nn.BatchNorm1d(out_c)
+
+    def forward(self, x):
+        bs = x.shape[0]
+        x = self.avg_pool(x)
+        x = x.view(bs, -1)
+        x = self.linear(x)
+        x = self.bn(torch.relu(x))
         return x
 
 

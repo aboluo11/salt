@@ -2,10 +2,11 @@ from lightai.imps import *
 from salt.metric import iou_to_score
 
 class Crit:
-    def __init__(self, mask_loss, weight):
+    def __init__(self, weight):
         self.weight = weight
-        # self.has_salt_loss = nn.BCEWithLogitsLoss()
-        self.mask_loss = mask_loss
+        self.logit_img_loss = nn.BCEWithLogitsLoss()
+        self.lovasz = lovasz
+        self.bce = nn.BCEWithLogitsLoss()
 
     def __call__(self, predict, target):
         """
