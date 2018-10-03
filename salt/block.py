@@ -49,7 +49,7 @@ class SpatialGate(nn.Module):
     def __init__(self, in_c, writer, tag):
         super().__init__()
         self.conv1 = ConvBlock(in_c, in_c//2, kernel_size=3, padding=1)
-        self.conv2 = ConvBlock(in_c//2, 1, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv2d(in_c//2, 1, kernel_size=3, padding=1)
         self.in_c = in_c
         self.writer = writer
         self.tag = f'{tag}_spatial_gate'
