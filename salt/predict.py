@@ -15,7 +15,7 @@ def tta_mean_predict(predicts: List, reverse_tta: List):
     assert len(predicts) == len(reverse_tta)
     p_masks = []
     for predict, f in zip(predicts, reverse_tta):
-        logit = predict
+        logit = predict[0]
         if f:
             logit = f(logit)
         p_masks.append(torch.sigmoid(logit))

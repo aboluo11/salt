@@ -13,16 +13,21 @@ class Crit:
         predict: [mask(logit) if at least one target has salt, else None, has_salt(logit)]
         target: mask
         """
-        # bs = target.shape[0]
-        logit_pixel = predict
-        # t_has_salt_index = target.byte().view(bs, -1).any(dim=1)
-        # logit_img_loss = self.has_salt_loss(logit_img, t_has_salt_index.float())
-        # if t_has_salt_index.any():
-        #     logit_pixel_loss = self.mask_loss(logit_pixel[t_has_salt_index], target[t_has_salt_index])
-        # else:
-        #     logit_pixel_loss = 0
-        logit_loss = self.mask_loss(logit_pixel, target)
-        return logit_loss
+        bs = target.shape[0]
+        logit, logit_pixel, logit_img = predict
+        t_has_salt_index = target.byte().view(bs, -1).any(dim=1)
+        logit_img_loss = self.logit_img_loss(logit_img, t_has_salt_index.float())
+        lovasz_loss1, lovasz_loss2 = 0, 0
+        bce_loss1, bce_loss2 = 0, 0
+        if t_has_salt_index.any():
+            lovasz_loss1 = self.lovasz(logit_pixel[t_has_salt_index], target[t_has_salt_index])
+            lovasz_loss2 = self.lovasz(logit[t_has_salt_index], target[t_has_salt_index])
+        if (~t_has_salt_index).any():
+            bce_loss1 = self.bce(logit_pixel[~t_has_salt_index], target[~t_has_salt_index])
+            bce_loss2 = self.bce(logit[~t_has_salt_index], target[~t_has_salt_index])
+        logit_pixel_loss = lovasz_loss1 + bce_loss1
+        logit_loss = lovasz_loss2 + bce_loss2
+        return logit_loss * self.weight[0] + logit_pixel_loss * self.weight[1] + logit_img_loss * self.weight[2]
 
 
 def get_weight(gt_sorted):

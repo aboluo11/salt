@@ -133,8 +133,8 @@ class Dynamic(nn.Module):
         x = self.bn_input(x)
         x = self.encoder(x)
 
-        logit_img = self.logit_img(self.avg_pool(x))
-        logit_img = logit_img.view(bs, 1, 1, 1)
+        fuse_img = self.fuse_img(x)
+        logit_img = self.logit_img(fuse_img)
 
         x = self.center(x)
 
@@ -147,12 +147,13 @@ class Dynamic(nn.Module):
             hyper_columns[i] = F.interpolate(hyper_columns[i], size=101, mode='bilinear', align_corners=False)
 
         self.features = []
+        fuse_pixel = self.fuse_pixel(torch.cat(hyper_columns, dim=1))
+        logit_pixel = self.logit_pixel(fuse_pixel)
 
-        x = torch.cat(hyper_columns, dim=1)
-        x *= torch.sigmoid(logit_img)
-        logit_pixel = self.logit_pixel(x)
+        logit = self.fuse(torch.cat([fuse_pixel, fuse_img.view(bs, fuse_img.shape[1], 1, 1)
+                                    .expand(-1, -1, *fuse_pixel.shape[-2:])], dim=1))
 
-        return logit_pixel
+        return logit, logit_pixel, logit_img
 
     def get_layer_groups(self):
         return [self.encoder, [self.upmodel]]
@@ -174,7 +175,8 @@ class Dynamic(nn.Module):
             x = self.center(x)
 
             upmodel = OrderedDict()
-            pixel_c = 0
+            fuse_pixel_in_c = 0
+            fuse_pixel_out_c = 64
             decoder_count = 0
             for i in reversed(range(len(self.features))):
                 feature = self.features[i]
@@ -185,9 +187,11 @@ class Dynamic(nn.Module):
                     block.eval()
                     x = block(feature, x)
                     upmodel[f'decoder_layer{decoder_count}'] =block
-                    pixel_c += x.shape[1]
+                    fuse_pixel_in_c += x.shape[1]
                 else:
                     self.handles[i].remove()
             self.features = []
             self.upmodel = nn.Sequential(upmodel)
-            self.logit_pixel = LogitPixel(pixel_c, writer=self.writer)
+            self.fuse_pixel = ConvBlock(fuse_pixel_in_c, fuse_pixel_out_c, kernel_size=3, padding=1)
+            self.logit_pixel = LogitPixel(fuse_pixel_out_c, writer=self.writer)
+            self.fuse = LogitPixel(fuse_pixel_out_c + fuse_img_out_c, writer=self.writer)
