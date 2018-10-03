@@ -4,7 +4,7 @@ from salt.metric import iou_to_score
 class Crit:
     def __init__(self, mask_loss, weight):
         self.weight = weight
-        self.has_salt_loss = nn.BCEWithLogitsLoss()
+        # self.has_salt_loss = nn.BCEWithLogitsLoss()
         self.mask_loss = mask_loss
 
     def __call__(self, predict, target):
@@ -12,17 +12,16 @@ class Crit:
         predict: [mask(logit) if at least one target has salt, else None, has_salt(logit)]
         target: mask
         """
-        bs = target.shape[0]
-        logit, logit_pixel, logit_img = predict
-        t_has_salt_index = target.byte().view(bs, -1).any(dim=1)
-        logit_img_loss = self.has_salt_loss(logit_img, t_has_salt_index.float())
-        if t_has_salt_index.any():
-            logit_pixel_loss = self.mask_loss(logit_pixel[t_has_salt_index], target[t_has_salt_index])
-        else:
-            logit_pixel_loss = 0
-        logit_loss = self.mask_loss(logit, target)
-        return logit_loss * self.weight[0] + logit_pixel_loss * t_has_salt_index.sum().float() / bs * self.weight[1] + \
-               logit_img_loss * self.weight[2]
+        # bs = target.shape[0]
+        logit_pixel = predict
+        # t_has_salt_index = target.byte().view(bs, -1).any(dim=1)
+        # logit_img_loss = self.has_salt_loss(logit_img, t_has_salt_index.float())
+        # if t_has_salt_index.any():
+        #     logit_pixel_loss = self.mask_loss(logit_pixel[t_has_salt_index], target[t_has_salt_index])
+        # else:
+        #     logit_pixel_loss = 0
+        logit_loss = self.mask_loss(logit_pixel, target)
+        return logit_loss
 
 
 def get_weight(gt_sorted):
