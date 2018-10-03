@@ -76,6 +76,7 @@ class FuseImg(nn.Module):
         x = x.view(bs, -1)
         x = self.linear(x)
         x = self.bn(torch.relu(x))
+        x = x.view(bs, -1)
         return x
 
 
@@ -98,10 +99,8 @@ class UnetBlock(nn.Module):
     def forward(self, feature, x, global_step=None):
         x = self.upconv(x, output_size=feature.shape)
         out = self.conv1(torch.cat([x, feature], dim=1))
-
         # if self.feature_width != 101:
         #     out = self.ob_context(out)
-
         out = self.conv2(out)
         # out = self.spatial(out, global_step)
         return out
@@ -166,7 +165,9 @@ class Dynamic(nn.Module):
             self.encoder.eval()
             x = self.encoder(x)
 
-            self.logit_img = LogitImg(x.shape[1])
+            fuse_img_out_c = 64
+            self.fuse_img = FuseImg(x.shape[1], fuse_img_out_c)
+            self.logit_img = LogitImg(fuse_img_out_c)
 
             self.center = nn.Sequential(
                 ConvBlock(x.shape[1], x.shape[1], kernel_size=3, padding=1),
