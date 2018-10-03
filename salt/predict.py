@@ -8,20 +8,17 @@ from salt.transform import *
 
 def tta_mean_predict(predicts: List, reverse_tta: List):
     """
-    :param predicts: list of predict, predict: [p_mask, has_salt].
-    :param reverse_tta: apply to p_mask
+    :param predicts: list of predict, predict: [logit, has_salt].
+    :param reverse_tta: apply to logit
     :return: mean probability of tta predicts, shape: [batch_size]
     """
     assert len(predicts) == len(reverse_tta)
     p_masks = []
     for predict, f in zip(predicts, reverse_tta):
-        p_mask = predict[0]
+        logit = predict[0]
         if f:
-            p_mask = f(p_mask)
-        has_salt_index = torch.sigmoid(predict[1]) > 0.5
-        if has_salt_index.any():
-            p_mask[has_salt_index] = torch.sigmoid(p_mask[has_salt_index])
-        p_masks.append(p_mask)
+            logit = f(logit)
+        p_masks.append(torch.sigmoid(logit))
     return torch.stack(p_masks).mean(dim=0)
 
 

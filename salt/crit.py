@@ -3,7 +3,6 @@ from salt.metric import iou_to_score
 
 class Crit:
     def __init__(self, mask_loss, weight):
-        """weight: a list, all items sum to 1"""
         self.weight = weight
         self.has_salt_loss = nn.BCEWithLogitsLoss()
         self.mask_loss = mask_loss
@@ -14,16 +13,16 @@ class Crit:
         target: mask
         """
         bs = target.shape[0]
-        p_mask, p_has_salt = predict
-        p_has_salt_index = torch.sigmoid(p_has_salt) > 0.5
+        logit, logit_pixel, logit_img = predict
         t_has_salt_index = target.byte().view(bs, -1).any(dim=1)
-        has_salt_loss = self.has_salt_loss(p_has_salt, t_has_salt_index.float())
-        has_salt_index = p_has_salt_index * t_has_salt_index
-        if has_salt_index.any():
-            mask_loss = self.mask_loss(p_mask[has_salt_index], target[has_salt_index])
+        logit_img_loss = self.has_salt_loss(logit_img, t_has_salt_index.float())
+        if t_has_salt_index.any():
+            logit_pixel_loss = self.mask_loss(logit_pixel[t_has_salt_index], target[t_has_salt_index])
         else:
-            mask_loss = 0
-        return mask_loss * has_salt_index.sum().float() / bs * self.weight[0] + has_salt_loss * self.weight[1]
+            logit_pixel_loss = 0
+        logit_loss = self.mask_loss(logit, target)
+        return logit_loss * self.weight[0] + logit_pixel_loss * t_has_salt_index.sum().float() / bs * self.weight[1] + \
+               logit_img_loss * self.weight[2]
 
 
 def get_weight(gt_sorted):

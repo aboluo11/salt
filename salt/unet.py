@@ -30,10 +30,10 @@ def _percent(x):
     return (a/b).item()
 
 
-class FinalConv(nn.Module):
-    def __init__(self, final_c, writer):
+class LogitPixel(nn.Module):
+    def __init__(self, in_c, writer):
         super().__init__()
-        self.conv1 = ConvBlock(final_c, 64, kernel_size=3, padding=1)
+        self.conv1 = ConvBlock(in_c, 64, kernel_size=3, padding=1)
         self.conv2 = nn.Conv2d(64, 1, kernel_size=1)
         self.writer = writer
 
@@ -42,12 +42,12 @@ class FinalConv(nn.Module):
         x = self.conv2(x)
         return x
 
-class HasSalt(nn.Module):
+class LogitImg(nn.Module):
     def __init__(self, in_c):
         super().__init__()
-        self.linear1 = nn.Linear(in_c, 256)
-        self.linear2 = nn.Linear(256, 1)
-        self.bn = nn.BatchNorm1d(256)
+        self.linear1 = nn.Linear(in_c, 64)
+        self.linear2 = nn.Linear(64, 1)
+        self.bn = nn.BatchNorm1d(64)
 
     def forward(self, x):
         x = x.view(x.shape[0], -1)
@@ -56,6 +56,7 @@ class HasSalt(nn.Module):
         x = self.linear2(x)
         x = x.view(-1)
         return x
+
 
 class UnetBlock(nn.Module):
     def __init__(self, feature_c, x_c, out_c, feature_width, drop, writer, layer_num):
@@ -70,7 +71,7 @@ class UnetBlock(nn.Module):
         self.writer = writer
         self.layer_num = layer_num
         self.tag = f'decode_layer{layer_num}'
-        self.spatial = SpatialGate(out_c, writer, self.tag)
+        # self.spatial = SpatialGate(out_c, writer, self.tag)
         # self.ob_context = ObjectContext(feature_c, feature_c//2, feature_c//2, feature_c)
 
     def forward(self, feature, x, global_step=None):
@@ -81,7 +82,7 @@ class UnetBlock(nn.Module):
         #     out = self.ob_context(out)
 
         out = self.conv2(out)
-        out = self.spatial(out, global_step)
+        # out = self.spatial(out, global_step)
         return out
 
 
@@ -96,6 +97,7 @@ class Dynamic(nn.Module):
         self.encoder4 = resnet.layer3
         self.encoder5 = resnet.layer4
         self.encoder = nn.Sequential(self.encoder1, self.encoder2, self.encoder3, self.encoder4, self.encoder5)
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.features = []
         self.handles = []
         for m in self.encoder.children():
@@ -107,43 +109,35 @@ class Dynamic(nn.Module):
         self.encoder1.conv.weight.data = resnet.conv1.weight.data.mean(dim=1, keepdim=True)
 
     def forward(self, x, global_step=None):
-        """
-        return [mask, has_salt(logit)]
-        """
         bs = x.shape[0]
         res = torch.zeros(bs, 1, *(x.shape[-2:]), device='cuda')
 
         x = self.bn_input(x)
         x = self.encoder(x)
 
-        has_salt = self.has_salt(x)
+        fuse_img = self.avg_pool(x)
+        logit_img = self.logit_img(fuse_img)
 
         x = self.center(x)
 
-        has_salt_index = torch.sigmoid(has_salt) > 0.5
-        if has_salt_index.any():
-            x = x[has_salt_index]
-        else:
-            return res, has_salt
-
         hyper_columns = []
         for i, (feature, block) in enumerate(zip(reversed(self.features), self.upmodel)):
-            x = block(feature[has_salt_index], x, global_step)
+            x = block(feature, x, global_step)
             hyper_columns.append(x)
 
         for i in range(len(hyper_columns)):
             hyper_columns[i] = F.interpolate(hyper_columns[i], size=101, mode='bilinear', align_corners=False)
 
         self.features = []
-        x = torch.cat(hyper_columns, dim=1)
-        x = self.final_conv(x, global_step)
+        fuse_pixel = torch.cat(hyper_columns, dim=1)
+        logit_pixel = self.logit_pixel(fuse_pixel)
 
-        res[has_salt_index] = x
+        logit = self.fuse(torch.cat([fuse_pixel, fuse_img.expand(-1, -1, *fuse_pixel.shape[-2:])], dim=1))
 
-        return res, has_salt
+        return logit, logit_pixel, logit_img
 
     def get_layer_groups(self):
-        return [self.encoder, [self.upmodel, self.final_conv, self.has_salt]]
+        return [self.encoder, [self.upmodel]]
 
     def dummy_forward(self, x, drop):
         with torch.no_grad():
@@ -151,7 +145,8 @@ class Dynamic(nn.Module):
             self.encoder.eval()
             x = self.encoder(x)
 
-            self.has_salt = HasSalt(x.shape[1] * x.shape[2] * x.shape[3])
+            fuse_img_c = x.shape[1]
+            self.logit_img = LogitImg(fuse_img_c)
 
             self.center = nn.Sequential(
                 ConvBlock(x.shape[1], x.shape[1], kernel_size=3, padding=1),
@@ -160,7 +155,7 @@ class Dynamic(nn.Module):
             x = self.center(x)
 
             upmodel = OrderedDict()
-            final_c = 0
+            fuse_pixel_c = 0
             decoder_count = 0
             for i in reversed(range(len(self.features))):
                 feature = self.features[i]
@@ -171,9 +166,10 @@ class Dynamic(nn.Module):
                     block.eval()
                     x = block(feature, x)
                     upmodel[f'decoder_layer{decoder_count}'] =block
-                    final_c += x.shape[1]
+                    fuse_pixel_c += x.shape[1]
                 else:
                     self.handles[i].remove()
             self.features = []
             self.upmodel = nn.Sequential(upmodel)
-            self.final_conv = FinalConv(final_c, self.writer)
+            self.logit_pixel = LogitPixel(fuse_pixel_c, writer=self.writer)
+            self.fuse = LogitPixel(fuse_pixel_c + fuse_img_c, writer=self.writer)
