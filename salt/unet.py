@@ -33,7 +33,7 @@ def _percent(x):
 class Fuse(nn.Module):
     def __init__(self, in_c):
         super().__init__()
-        self.conv1 = ConvBlock(in_c, in_c//2, kernel_size=1)
+        self.conv1 = ConvBlock(in_c, in_c//2, kernel_size=3, padding=1)
         self.conv2 = nn.Conv2d(in_c//2, 1, kernel_size=1)
 
     def forward(self, x):
