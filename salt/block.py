@@ -13,8 +13,8 @@ class ConvBlock(nn.Module):
 
     def forward(self, x):
         x = self.conv(x)
-        x = self.bn(x)
         x = self.activation(x)
+        x = self.bn(x)
         return x
 
 
@@ -24,16 +24,21 @@ class ChannelGate(nn.Module):
         r = 2
         self.linear1 = nn.Linear(in_c, in_c//r)
         self.linear2 = nn.Linear(in_c//r, in_c)
-        # self.bn = nn.BatchNorm1d(in_c//r)
+        self.bn1 = nn.BatchNorm1d(in_c//r)
+        self.bn2 = nn.BatchNorm1d(in_c)
 
     def forward(self, x):
+        bs = x.shape[0]
         origin = x
         x = x.view(*(x.shape[:2]), -1)
         x = torch.mean(x, dim=2)
         x = self.linear1(x)
         x = torch.relu(x)
-        # x = self.bn(x)
+        if bs > 1:
+            x = self.bn1(x)
         x = self.linear2(x)
+        if bs > 1:
+            x = self.bn2(x)
         x = x.view(*x.shape, 1, 1)
         x = torch.sigmoid(x)
         x = x * origin
@@ -41,15 +46,24 @@ class ChannelGate(nn.Module):
 
 
 class SpatialGate(nn.Module):
-    def __init__(self, in_c):
+    def __init__(self, in_c, writer, tag):
         super().__init__()
-        self.conv1 = nn.Conv2d(in_c, 1, 1)
+        self.conv1 = ConvBlock(in_c, in_c//2, kernel_size=3, padding=1)
+        self.conv2 = ConvBlock(in_c//2, 1, kernel_size=3, padding=1)
         self.in_c = in_c
+        self.writer = writer
+        self.tag = f'{tag}_spatial_gate'
 
-    def forward(self, x):
+    def forward(self, x, global_step):
         origin = x
         x = self.conv1(x)
-        x = x / (self.in_c**0.5)
+        x = self.conv2(x)
+        # x = x / (self.in_c**0.5)
+        # if global_step:
+        #     self.writer.add_scalar(f'{self.tag}_conv_grad_mean', self.conv1.weight.grad.mean(), global_step)
+        #     self.writer.add_scalar(f'{self.tag}_conv_grad_std', self.conv1.weight.grad.std(), global_step)
+        #     self.writer.add_scalar(f'{self.tag}_x_mean', x.mean(), global_step)
+        #     self.writer.add_scalar(f'{self.tag}_x_std', x.std(), global_step)
         x = torch.sigmoid(x)
         x = x * origin
         return x

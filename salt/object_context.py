@@ -8,7 +8,7 @@ class Attention(nn.Module):
         self.key_c = key_c
         self.value_c = value_c
         self.key = ConvBlock(in_c+2, key_c, kernel_size=1, activation='leaky', padding=0)
-        self.query = ConvBlock(in_c+2, key_c, kernel_size=1, activation='leaky', padding=0)
+        self.query = self.key
         # self.value = ConvBlock(in_c, value_c, kernel_size=1)
         # self.conv1 = ConvBlock(value_c, in_c, kernel_size=1)
 
