@@ -66,13 +66,13 @@ class LogitImg(nn.Module):
 class FuseImg(nn.Module):
     def __init__(self, in_c, out_c):
         super().__init__()
-        # self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.linear = nn.Linear(in_c, out_c)
         self.bn = nn.BatchNorm1d(out_c)
 
     def forward(self, x):
         bs = x.shape[0]
-        # x = self.avg_pool(x)
+        x = self.avg_pool(x)
         x = x.view(bs, -1)
         x = self.linear(x)
         x = self.bn(torch.relu(x))
@@ -165,7 +165,7 @@ class Dynamic(nn.Module):
             x = self.encoder(x)
 
             fuse_img_out_c = 128
-            self.fuse_img = FuseImg(x.shape[1]*x.shape[2]*x.shape[3], fuse_img_out_c)
+            self.fuse_img = FuseImg(x.shape[1], fuse_img_out_c)
             self.logit_img = LogitImg(fuse_img_out_c)
 
             self.center = nn.Sequential(

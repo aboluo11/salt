@@ -22,10 +22,7 @@ class Crit:
         if t_has_salt_index.any():
             weight = has_salt_sum.float() / bs
             logit_pixel_loss = self.lovasz(logit_pixel[t_has_salt_index], target[t_has_salt_index]) * weight
-            logit_loss += self.lovasz(logit[t_has_salt_index], target[t_has_salt_index]) * weight
-        if ~t_has_salt_index.any():
-            weight = (bs - has_salt_sum.float()) / bs
-            logit_loss += self.bce(logit[~t_has_salt_index], target[~t_has_salt_index]) * weight
+        logit_loss = self.lovasz(logit, target)
         return logit_loss * self.weight[0] + logit_pixel_loss * self.weight[1] + logit_img_loss * self.weight[2]
 
 
