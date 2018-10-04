@@ -164,7 +164,7 @@ class Dynamic(nn.Module):
             self.encoder.eval()
             x = self.encoder(x)
 
-            fuse_img_out_c = 128
+            fuse_img_out_c = 64
             self.fuse_img = FuseImg(x.shape[1], fuse_img_out_c)
             self.logit_img = LogitImg(fuse_img_out_c)
 
@@ -176,7 +176,7 @@ class Dynamic(nn.Module):
 
             upmodel = OrderedDict()
             fuse_pixel_in_c = 0
-            fuse_pixel_out_c = 128
+            fuse_pixel_out_c = 64
             decoder_count = 0
             for i in reversed(range(len(self.features))):
                 feature = self.features[i]
