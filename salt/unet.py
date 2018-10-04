@@ -165,7 +165,7 @@ class Dynamic(nn.Module):
             x = self.encoder(x)
 
             fuse_img_out_c = 128
-            self.fuse_img = FuseImg(x.shape[1]*x.shape[2]*x.shape[3], fuse_img_out_c)
+            self.fuse_img = FuseImg(x.shape[1], fuse_img_out_c)
             self.logit_img = LogitImg(fuse_img_out_c)
 
             self.center = nn.Sequential(
