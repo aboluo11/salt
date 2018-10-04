@@ -194,4 +194,4 @@ class Dynamic(nn.Module):
             self.upmodel = nn.Sequential(upmodel)
             self.fuse_pixel = ConvBlock(fuse_pixel_in_c, fuse_pixel_out_c, kernel_size=3, padding=1)
             self.logit_pixel = LogitPixel(fuse_pixel_out_c, writer=self.writer)
-            self.fuse = Fuse(fuse_pixel_out_c + fuse_img_out_c, writer=self.writer)
+            self.fuse = Fuse(fuse_pixel_out_c + fuse_img_out_c)
