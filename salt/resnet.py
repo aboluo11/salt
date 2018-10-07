@@ -1,6 +1,7 @@
-from lightai.imps import *
+from lightai.core import *
 from .log import *
 from .block import *
+import torch.utils.model_zoo as model_zoo
 
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',

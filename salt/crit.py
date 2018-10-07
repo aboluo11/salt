@@ -1,4 +1,4 @@
-from lightai.imps import *
+from lightai.core import *
 from salt.metric import iou_to_score
 
 class Crit:

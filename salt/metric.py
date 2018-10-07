@@ -6,9 +6,8 @@ class Score:
     support tta
     """
 
-    def __init__(self, writer, reverse_ttas):
+    def __init__(self, reverse_ttas):
         self.scores = []
-        self.writer = writer
         self.reverse_ttas = reverse_ttas
 
     def __call__(self, predicts, target: torch.Tensor):
@@ -22,14 +21,12 @@ class Score:
         s = get_score(p_mask, target)
         self.scores.append(s)
 
-    def res(self, epoch) -> float:
+    def res(self) -> float:
         """
         :return:  batches of predicts' score, reduced
         """
         res = torch.cat(self.scores).mean().item()
         self.scores = []
-        if self.writer:
-            self.writer.add_scalar("score", res, epoch)
         return res
 
 

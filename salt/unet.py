@@ -1,5 +1,4 @@
-from lightai.imps import *
-from tensorboardX import SummaryWriter
+from lightai.core import *
 from .log import *
 from .resnet import *
 from .block import *
@@ -48,7 +47,7 @@ class LogitPixel(nn.Module):
         self.conv1 = nn.Conv2d(in_c, 1, kernel_size=1)
         self.writer = writer
 
-    def forward(self, x, global_step=None):
+    def forward(self, x):
         x = self.conv1(x)
         return x
 
@@ -95,13 +94,13 @@ class UnetBlock(nn.Module):
         # self.spatial = SpatialGate(out_c, writer, self.tag)
         # self.ob_context = ObjectContext(feature_c, feature_c//2, feature_c//2, feature_c)
 
-    def forward(self, feature, x, global_step=None):
+    def forward(self, feature, x):
         x = self.upconv(x, output_size=feature.shape)
         out = self.conv1(torch.cat([x, feature], dim=1))
         # if self.feature_width != 101:
         #     out = self.ob_context(out)
         out = self.conv2(out)
-        # out = self.spatial(out, global_step)
+        # out = self.spatial(out)
         return out
 
 
@@ -126,7 +125,7 @@ class Dynamic(nn.Module):
 
         self.encoder1.conv.weight.data = resnet.conv1.weight.data.mean(dim=1, keepdim=True)
 
-    def forward(self, x, global_step=None):
+    def forward(self, x):
         bs = x.shape[0]
         res = torch.zeros(bs, 1, *(x.shape[-2:]), device='cuda')
 
@@ -140,7 +139,7 @@ class Dynamic(nn.Module):
 
         hyper_columns = []
         for i, (feature, block) in enumerate(zip(reversed(self.features), self.upmodel)):
-            x = block(feature, x, global_step)
+            x = block(feature, x)
             hyper_columns.append(x)
 
         for i in range(len(hyper_columns)):

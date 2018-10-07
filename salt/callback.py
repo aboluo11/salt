@@ -1,8 +1,7 @@
-from lightai.imps import *
-from lightai.callback import CallBack
-from tensorboardX import SummaryWriter
+from lightai.core import *
+from lightai.callback import Callback
 
-class GradientLogger(CallBack):
+class GradientLogger(Callback):
     def __init__(self, model, writer):
         self.layers = {}
         for part in [model.encoder, model.upmodel]:

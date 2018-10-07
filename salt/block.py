@@ -1,4 +1,4 @@
-from lightai.imps import *
+from lightai.core import *
 
 
 class ConvBlock(nn.Module):
@@ -54,16 +54,11 @@ class SpatialGate(nn.Module):
         self.writer = writer
         self.tag = f'{tag}_spatial_gate'
 
-    def forward(self, x, global_step):
+    def forward(self, x):
         origin = x
         x = self.conv1(x)
         x = self.conv2(x)
         # x = x / (self.in_c**0.5)
-        # if global_step:
-        #     self.writer.add_scalar(f'{self.tag}_conv_grad_mean', self.conv1.weight.grad.mean(), global_step)
-        #     self.writer.add_scalar(f'{self.tag}_conv_grad_std', self.conv1.weight.grad.std(), global_step)
-        #     self.writer.add_scalar(f'{self.tag}_x_mean', x.mean(), global_step)
-        #     self.writer.add_scalar(f'{self.tag}_x_std', x.std(), global_step)
         x = torch.sigmoid(x)
         x = x * origin
         return x

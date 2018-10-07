@@ -1,4 +1,4 @@
-from lightai.imps import *
+from lightai.core import *
 from torchvision.transforms import *
 import torchvision.transforms
 
@@ -84,13 +84,13 @@ class MyCompose(MultiChildTsfm):
 class MyRandomApply(MultiChildTsfm):
     def __init__(self, tsfms, ps):
         self.tsfms = tsfms
-        if not isinstance(ps, collections.Iterable):
+        if not isinstance(ps, Iterable):
             ps = listify(ps, tsfms)
         self.ps = ps
 
     def __call__(self, sample):
         for t, p in zip(self.tsfms, self.ps):
-            if rand() < p:
+            if np.random.rand() < p:
                 sample = t(sample)
         return sample
 
@@ -98,7 +98,7 @@ class MyRandomApply(MultiChildTsfm):
 class MyRandomChoice(MultiChildTsfm):
     def __init__(self, tsfms, ps):
         self.tsfms = tsfms
-        if not isinstance(ps, collections.Iterable):
+        if not isinstance(ps, Iterable):
             ps = listify(ps, tsfms)
         self.ps = ps
 
