@@ -8,7 +8,6 @@ class Score:
 
     def __init__(self, reverse_ttas):
         self.scores = []
-        self.bses = []
         self.reverse_ttas = reverse_ttas
 
     def __call__(self, predicts, target: torch.Tensor):
@@ -21,15 +20,13 @@ class Score:
         p_mask = tta_mean_predict(predicts, self.reverse_ttas)
         s = get_score(p_mask, target)
         self.scores.append(s)
-        self.bses.append(target.shape[0])
 
     def res(self) -> float:
         """
         :return:  batches of predicts' score, reduced
         """
-        res = np.average(self.scores, weights=self.bses)
+        res = torch.cat(self.scores).mean().item()
         self.scores = []
-        self.bses = []
         return res
 
 
@@ -39,7 +36,7 @@ def iou_to_score(iou):
     metric = torch.arange(0.5, 1, 0.05, device='cuda')
     return torch.sum(iou > metric, dim=-1).float() / 10
 
-def get_score(predict: torch.Tensor, target: torch.Tensor) -> float:
+def get_score(predict: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
     """
     :param predict: batch of predict masks
     :param target: batch of target masks
@@ -50,7 +47,7 @@ def get_score(predict: torch.Tensor, target: torch.Tensor) -> float:
     union = torch.sum(predict > 0.5, dim=1) + torch.sum(target == 1, dim=1) - intersection
     iou = intersection.float() / union.float()
     iou[torch.isnan(iou)] = 1
-    return iou_to_score(iou).item()
+    return iou_to_score(iou)
 
 
 def val_score(models: List, val_dl: DataLoader, reverse_tta: List) -> float:
