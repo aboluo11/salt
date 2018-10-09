@@ -1,6 +1,7 @@
 inputs
 .*
-model
+models
+states
 __pycache__
 *.csv
 test*
@@ -11,3 +12,4 @@ log
 /record.txt
 *.zip
 runs
+!*_git.ipynb
