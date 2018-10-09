@@ -41,6 +41,14 @@ class Fuse(nn.Module):
         return x
 
 
+class FusePixel(nn.Module):
+    def __init__(self, in_c, out_c):
+        self.conv1 = ConvBlock(in_c, out_c, kernel_size=3, padding=1)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        return x
+
 class LogitPixel(nn.Module):
     def __init__(self, in_c, writer):
         super().__init__()
@@ -91,7 +99,7 @@ class UnetBlock(nn.Module):
         self.writer = writer
         self.layer_num = layer_num
         self.tag = f'decode_layer{layer_num}'
-        self.sc = SCBlock(out_c)
+        # self.sc = SCBlock(out_c)
         # self.ob_context = ObjectContext(feature_c, feature_c//2, feature_c//2, feature_c)
 
     def forward(self, feature, x):
@@ -100,7 +108,7 @@ class UnetBlock(nn.Module):
         # if self.feature_width != 101:
         #     out = self.ob_context(out)
         out = self.conv2(out)
-        out = self.sc(out)
+        # out = self.sc(out)
         return out
 
 
@@ -191,6 +199,6 @@ class Dynamic(nn.Module):
                     self.handles[i].remove()
             self.features = []
             self.upmodel = nn.Sequential(upmodel)
-            self.fuse_pixel = ConvBlock(fuse_pixel_in_c, fuse_pixel_out_c, kernel_size=3, padding=1)
+            self.fuse_pixel = FusePixel(fuse_pixel_in_c, fuse_pixel_out_c)
             self.logit_pixel = LogitPixel(fuse_pixel_out_c, writer=self.writer)
             self.fuse = Fuse(fuse_pixel_out_c + fuse_img_out_c)
