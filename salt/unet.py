@@ -91,7 +91,7 @@ class UnetBlock(nn.Module):
         self.writer = writer
         self.layer_num = layer_num
         self.tag = f'decode_layer{layer_num}'
-        self.spatial = SpatialGate(out_c, writer, self.tag)
+        self.sc = SCBlock(out_c)
         # self.ob_context = ObjectContext(feature_c, feature_c//2, feature_c//2, feature_c)
 
     def forward(self, feature, x):
@@ -100,7 +100,7 @@ class UnetBlock(nn.Module):
         # if self.feature_width != 101:
         #     out = self.ob_context(out)
         out = self.conv2(out)
-        out = self.spatial(out)
+        out = self.sc(out)
         return out
 
 

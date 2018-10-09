@@ -36,11 +36,9 @@ class ChannelGate(nn.Module):
 
 
 class SpatialGate(nn.Module):
-    def __init__(self, in_c, writer, tag):
+    def __init__(self, in_c):
         super().__init__()
         self.conv1 = nn.Conv2d(in_c, 1, kernel_size=1)
-        self.writer = writer
-        self.tag = f'{tag}_spatial_gate'
 
     def forward(self, x):
         origin = x
