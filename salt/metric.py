@@ -30,17 +30,17 @@ class Score:
         return res
 
 class NoSaltCorrectRate:
-    def __init__(self):
+    def __init__(self, reverse_ttas):
+        self.reverse_ttas = reverse_ttas
         self.t_no_salt = 0
         self.p_no_salt = 0
 
     def __call__(self, predicts, target):
-        logit, logit_pixel, logit_img = predicts[0]
-        bs = target.shape[0]
-        t_no_salt_index = ~(target.byte().view(bs, -1).any(dim=1))
+        p_logit = tta_mean_predict(predicts, self.reverse_ttas)
+        t_no_salt_index = ~(target.byte().view(target.shape[0], -1).any(dim=1))
         if t_no_salt_index.any():
-            logit = torch.sigmoid(logit[t_no_salt_index])
-            self.p_no_salt += (~((logit>0.5).view(logit.shape[0], -1).any(dim=1))).sum()
+            p_logit = p_logit[t_no_salt_index]
+            self.p_no_salt += (~((p_logit>0.5).view(p_logit.shape[0], -1).any(dim=1))).sum()
             self.t_no_salt += t_no_salt_index.sum()
 
     def res(self):
