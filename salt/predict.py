@@ -68,6 +68,6 @@ def get_test_data(tta_tsfms: List, bs):
         return img
 
     test_ds = TestDataset(tsfm=tsfm, tta_tsfms=tta_tsfms)
-    test_sampler = BatchSampler(test_ds, bs)
-    test_dl = DataLoader(test_sampler)
+    test_sampler = BatchSampler(SequentialSampler(test_ds), bs, drop_last=False)
+    test_dl = DataLoader(test_ds, test_sampler)
     return test_dl
