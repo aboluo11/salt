@@ -32,7 +32,7 @@ def _percent(x):
 class Fuse(nn.Module):
     def __init__(self, in_c):
         super().__init__()
-        self.conv1 = ConvBlock(in_c, in_c//2, kernel_size=3, padding=1)
+        self.conv1 = ConvBlock(in_c, in_c//2, kernel_size=1)
         self.conv2 = nn.Conv2d(in_c//2, 1, kernel_size=1)
 
     def forward(self, x):
@@ -60,16 +60,6 @@ class LogitPixel(nn.Module):
         x = self.conv1(x)
         return x
 
-class LogitImg(nn.Module):
-    def __init__(self, in_c):
-        super().__init__()
-        self.linear1 = nn.Linear(in_c, 1)
-
-    def forward(self, x):
-        x = self.linear1(x)
-        x = x.view(-1)
-        return x
-
 
 class FuseImg(nn.Module):
     def __init__(self, in_c, out_c):
@@ -84,6 +74,17 @@ class FuseImg(nn.Module):
         x = x.view(bs, -1)
         x = self.linear(x)
         x = self.bn(torch.relu(x))
+        return x
+
+
+class LogitImg(nn.Module):
+    def __init__(self, in_c):
+        super().__init__()
+        self.linear1 = nn.Linear(in_c, 1)
+
+    def forward(self, x):
+        x = self.linear1(x)
+        x = x.view(-1)
         return x
 
 
