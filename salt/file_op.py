@@ -17,6 +17,7 @@ def fold_csv_to_trn_val(csv, path, n_fold):
 def create_kfold_csv(n_fold=5):
     train = pd.read_csv('inputs/train.csv')
     salt_coverage = pd.DataFrame(train['id'].copy())
+    salt_coverage['id'] = salt_coverage['id'] + '.png'
     salt_coverage = sort_by_coverage(train, salt_coverage)
     salt_coverage.drop('coverage', axis=1, inplace=True)
     salt_coverage['fold'] = (list(range(n_fold)) * salt_coverage.shape[0])[:salt_coverage.shape[0]]
