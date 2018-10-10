@@ -2,9 +2,9 @@ from lightai.core import *
 
 
 class Evaluator:
-    def __init__(self, val_dl, metric, model, loss_fn):
+    def __init__(self, val_dl, metrics: List, model, loss_fn):
         self.val_dl = val_dl
-        self.metric = metric
+        self.metrics = metrics
         self.model = model
         self.loss_fn = loss_fn
 
@@ -21,6 +21,8 @@ class Evaluator:
                         loss = self.loss_fn(predict, target)
                         losses.append(loss.item())
                         bses.append(len(target))
-                self.metric(predicts, target)
+                for metric in self.metrics:
+                    metric(predicts, target)
         loss = np.average(losses, weights=bses)
-        return loss, self.metric.res()
+        eval_res = [loss] + [metric.res() for metric in self.metrics]
+        return eval_res

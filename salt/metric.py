@@ -29,6 +29,25 @@ class Score:
         self.scores = []
         return res
 
+class NoSaltCorrectRate:
+    def __init__(self):
+        self.t_no_salt = 0
+        self.p_no_salt = 0
+
+    def __call__(self, predicts, target):
+        logit, logit_pixel, logit_img = predicts[0]
+        bs = target.shape[0]
+        t_no_salt_index = ~(target.byte().view(bs, -1).any(dim=1))
+        if t_no_salt_index.any():
+            logit = torch.sigmoid(logit[t_no_salt_index])
+            self.p_no_salt += (~((logit>0.5).view(logit.shape[0], -1).any(dim=1))).sum()
+            self.t_no_salt += t_no_salt_index.sum()
+
+    def res(self):
+        res = self.p_no_salt.item()/self.t_no_salt.item()
+        self.t_no_salt, self.p_no_salt = 0, 0
+        return res
+
 
 def iou_to_score(iou):
     shape = iou.shape
