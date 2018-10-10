@@ -106,7 +106,7 @@ class UnetBlock(nn.Module):
 
     def forward(self, feature, x):
         # x = self.upconv(x, output_size=feature.shape)
-        x = F.interpolate(x, size=feature.shape[-1], mode='bilinear')
+        x = F.interpolate(x, size=feature.shape[-1], mode='bilinear', align_corners=False)
         out = self.conv1(torch.cat([x, feature], dim=1))
         # if self.feature_width != 101:
         #     out = self.ob_context(out)
