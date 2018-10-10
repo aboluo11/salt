@@ -48,6 +48,22 @@ class NoSaltCorrectRate:
         self.t_no_salt, self.p_no_salt = 0, 0
         return res
 
+class HasSaltScore:
+    def __init__(self, reverse_ttas):
+        self.reverse_ttas = reverse_ttas
+        self.scores = []
+
+    def __call__(self, predicts, target):
+        p_logit = tta_mean_predict(predicts, self.reverse_ttas)
+        t_has_salt_index = target.byte().view(target.shape[0], -1).any(dim=1)
+        if t_has_salt_index.any():
+            s = get_score(p_logit[t_has_salt_index], target[t_has_salt_index])
+            self.scores.append(s)
+
+    def res(self):
+        res = torch.cat(self.scores).mean().item()
+        self.scores = []
+        return res
 
 def iou_to_score(iou):
     shape = iou.shape
