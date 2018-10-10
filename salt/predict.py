@@ -35,7 +35,7 @@ def predict_test(models: List, tta_tsfms: List = [None, hflip], reverse_tta: Lis
             for model in models:
                 predicts = []
                 for img, name in tta_batch:
-                    predict = model(T(img))
+                    predict = model(img)
                     predicts.append(predict)
                 predict = tta_mean_predict(predicts, reverse_tta)
                 model_predicts.append(predict)

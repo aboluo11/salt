@@ -95,7 +95,7 @@ class UnetBlock(nn.Module):
         """
         super().__init__()
         self.feature_width = feature_width
-        self.upconv = nn.ConvTranspose2d(x_c, x_c, kernel_size=3, stride=2, padding=1)
+        # self.upconv = nn.ConvTranspose2d(x_c, x_c, kernel_size=3, stride=2, padding=1)
         self.conv1 = ConvBlock(feature_c + x_c, feature_c, kernel_size=3, stride=1, padding=1)
         self.conv2 = ConvBlock(feature_c, out_c, kernel_size=3, stride=1, padding=1)
         self.writer = writer
@@ -105,7 +105,8 @@ class UnetBlock(nn.Module):
         # self.ob_context = ObjectContext(feature_c, feature_c//2, feature_c//2, feature_c)
 
     def forward(self, feature, x):
-        x = self.upconv(x, output_size=feature.shape)
+        # x = self.upconv(x, output_size=feature.shape)
+        x = F.interpolate(x, size=feature.shape[-1], mode='bilinear')
         out = self.conv1(torch.cat([x, feature], dim=1))
         # if self.feature_width != 101:
         #     out = self.ob_context(out)

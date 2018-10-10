@@ -64,7 +64,6 @@ def val_score(models: List, val_dl: DataLoader, reverse_tta: List) -> float:
             for model in models:
                 predicts = []
                 for img, mask in tta_batch:
-                    img, mask = T(img), T(mask)
                     predict = model(img)
                     predicts.append(predict)
                 p_mask = tta_mean_predict(predicts, reverse_tta)
