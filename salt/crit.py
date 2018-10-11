@@ -4,7 +4,6 @@ from salt.metric import iou_to_score
 class Crit:
     def __init__(self, weight):
         self.weight = weight
-        self.logit_img_loss = nn.BCEWithLogitsLoss()
         self.lovasz = lovasz
         self.bce = nn.BCEWithLogitsLoss()
 
@@ -14,16 +13,15 @@ class Crit:
         target: mask
         """
         bs = target.shape[0]
-        logit, logit_pixel, logit_img = predict
+        logit, img_logit = predict
         t_has_salt_index = target.byte().view(bs, -1).any(dim=1)
-        logit_img_loss = self.logit_img_loss(logit_img, t_has_salt_index.float())
-        logit_pixel_loss = 0
-        has_salt_sum = t_has_salt_index.sum()
+        img_loss = self.bce(img_logit, t_has_salt_index.float())
+        logit_loss = 0
         if t_has_salt_index.any():
+            has_salt_sum = t_has_salt_index.sum()
             weight = has_salt_sum.float() / bs
-            logit_pixel_loss = self.lovasz(logit_pixel[t_has_salt_index], target[t_has_salt_index]) * weight
-        logit_loss = self.lovasz(logit, target)
-        return logit_loss * self.weight[0] + logit_pixel_loss * self.weight[1] + logit_img_loss * self.weight[2]
+            logit_loss = self.lovasz(logit[t_has_salt_index], target[t_has_salt_index]) * weight
+        return logit_loss * self.weight[0] + img_loss * self.weight[1]
 
 
 def get_weight(gt_sorted):

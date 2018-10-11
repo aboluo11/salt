@@ -17,7 +17,10 @@ def tta_mean_predict(predicts: List, reverse_tta: List):
         logit = predict[0]
         if f:
             logit = f(logit)
-        p_masks.append(torch.sigmoid(logit))
+        p_has_salt_index = torch.sigmoid(predict[1]) > 0.5
+        if p_has_salt_index.any():
+            logit[p_has_salt_index] = torch.sigmoid(logit[p_has_salt_index])
+        p_masks.append(logit)
     return torch.stack(p_masks).mean(dim=0)
 
 

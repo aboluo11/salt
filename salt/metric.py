@@ -29,26 +29,6 @@ class Score:
         self.scores = []
         return res
 
-class NoSaltCorrectRate:
-    """empty tp"""
-    def __init__(self, reverse_ttas):
-        self.reverse_ttas = reverse_ttas
-        self.t_no_salt = 0
-        self.p_no_salt = 0
-
-    def __call__(self, predicts, target):
-        p_logit = tta_mean_predict(predicts, self.reverse_ttas)
-        t_no_salt_index = ~(target.byte().view(target.shape[0], -1).any(dim=1))
-        if t_no_salt_index.any():
-            p_logit = p_logit[t_no_salt_index]
-            self.p_no_salt += (~((p_logit>0.5).view(p_logit.shape[0], -1).any(dim=1))).sum()
-            self.t_no_salt += t_no_salt_index.sum()
-
-    def res(self):
-        res = self.p_no_salt.item()/self.t_no_salt.item()
-        self.t_no_salt, self.p_no_salt = 0, 0
-        return res
-
 class EmptyTP:
     def __init__(self, reverse_ttas):
         self.reverse_ttas = reverse_ttas
@@ -92,27 +72,6 @@ class EmptyFP:
         self.negative = 0
         return res
 
-class NonEmptyTp:
-    def __init__(self, reverse_ttas):
-        self.reverse_ttas = reverse_ttas
-        self.tp = 0
-        self.positive = 0
-
-    def __call__(self, predicts, target):
-        p_logit = tta_mean_predict(predicts, self.reverse_ttas)
-        p_has_salt_index = (p_logit>0.5).view(p_logit.shape[0], -1).any(dim=1)
-        t_has_salt_index = target.byte().view(target.shape[0], -1).any(dim=1)
-        tp = (p_has_salt_index * t_has_salt_index).float().sum()
-        positive = t_has_salt_index.float().sum()
-        self.tp += tp
-        self.positive += positive
-
-    def res(self):
-        res = (self.tp / self.positive).item()
-        self.tp = 0
-        self.positive = 0
-        return res
-
 
 class HasSaltScore:
     def __init__(self, reverse_ttas):
@@ -124,23 +83,6 @@ class HasSaltScore:
         t_has_salt_index = target.byte().view(target.shape[0], -1).any(dim=1)
         if t_has_salt_index.any():
             s = get_score(p_logit[t_has_salt_index], target[t_has_salt_index])
-            self.scores.append(s)
-
-    def res(self):
-        res = torch.cat(self.scores).mean().item()
-        self.scores = []
-        return res
-
-class NoSaltScore:
-    def __init__(self, reverse_ttas):
-        self.reverse_ttas = reverse_ttas
-        self.scores = []
-
-    def __call__(self, predicts, target):
-        p_logit = tta_mean_predict(predicts, self.reverse_ttas)
-        t_no_salt_index = ~(target.byte().view(target.shape[0], -1).any(dim=1))
-        if t_no_salt_index.any():
-            s = get_score(p_logit[t_no_salt_index], target[t_no_salt_index])
             self.scores.append(s)
 
     def res(self):
