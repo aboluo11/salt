@@ -15,7 +15,7 @@ class Crit:
         bs = target.shape[0]
         logit, logit_pixel, logit_img = predict
         t_has_salt_index = target.byte().view(bs, -1).any(dim=1)
-        logit_img_loss = self.logit_img_loss(logit_img, t_has_salt_index.float())
+        logit_img_loss = self.bce(logit_img, t_has_salt_index.float())
         logit_pixel_loss = 0
         has_salt_sum = t_has_salt_index.sum()
         if t_has_salt_index.any():
