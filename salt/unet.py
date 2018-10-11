@@ -91,14 +91,15 @@ class LogitImg(nn.Module):
 class HasSalt(nn.Module):
     def __init__(self, in_c):
         super().__init__()
-        self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.linear1 = nn.Linear(in_c, in_c//2)
-        self.bn = nn.BatchNorm1d(in_c//2)
-        self.linear2 = nn.Linear(in_c//2, 1)
+        # self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.linear1 = nn.Linear(in_c, 256)
+        self.bn = nn.BatchNorm1d(256)
+        self.linear2 = nn.Linear(256, 1)
 
     def forward(self, x):
-        x = self.avg_pool(x)
-        x = torch.squeeze(x)
+        # x = self.avg_pool(x)
+        # x = torch.squeeze(x)
+        x = x.view(x.shape[0], -1)
         x = self.linear1(x)
         x = torch.relu(x)
         x = self.bn(x)
@@ -201,7 +202,7 @@ class Dynamic(nn.Module):
             self.encoder.eval()
             x = self.encoder(x)
 
-            self.has_salt = HasSalt(x.shape[1])
+            self.has_salt = HasSalt(x.shape[1]*x.shape[2]*x.shape[3])
 
             self.center = nn.Sequential(
                 ConvBlock(x.shape[1], x.shape[1], kernel_size=3, padding=1),
