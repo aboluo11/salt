@@ -168,33 +168,32 @@ class Dynamic(nn.Module):
 
     def forward(self, x):
         bs = x.shape[0]
-        res = torch.zeros(bs, 1, *(x.shape[-2:]), device='cuda')
+        # res = torch.zeros(bs, 1, *(x.shape[-2:]), device='cuda')
 
         x = self.bn_input(x)
         x = self.encoder(x)
 
-        img_logit = self.has_salt(x)
-        p_has_salt_index = torch.sigmoid(img_logit) > 0.5
-
-        if p_has_salt_index.any():
-            x = x[p_has_salt_index]
-        else:
-            return res, img_logit
+        fuse_img = self.fuse_img(x)
+        logit_img = self.logit_img(fuse_img)
 
         x = self.center(x)
 
         hyper_columns = []
         for i, (feature, block) in enumerate(zip(reversed(self.features), self.upmodel)):
-            x = block(feature[p_has_salt_index], x)
+            x = block(feature, x)
             hyper_columns.append(x)
 
         for i in range(len(hyper_columns)):
             hyper_columns[i] = F.interpolate(hyper_columns[i], size=101, mode='bilinear', align_corners=False)
 
         self.features = []
-        x = self.final(torch.cat(hyper_columns, dim=1))
-        res[p_has_salt_index] = x
-        return res, img_logit
+        fuse_pixel = self.fuse_pixel(torch.cat(hyper_columns, dim=1))
+        logit_pixel = self.logit_pixel(fuse_pixel)
+
+        logit = self.fuse(torch.cat([fuse_pixel, fuse_img.view(bs, fuse_img.shape[1], 1, 1)
+                                    .expand(-1, -1, *fuse_pixel.shape[-2:])], dim=1))
+
+        return logit, logit_pixel, logit_img
 
     def dummy_forward(self, x, drop):
         with torch.no_grad():
@@ -202,7 +201,9 @@ class Dynamic(nn.Module):
             self.encoder.eval()
             x = self.encoder(x)
 
-            self.has_salt = HasSalt(x.shape[1]*x.shape[2]*x.shape[3])
+            fuse_img_out_c = 64
+            self.fuse_img = FuseImg(x.shape[1], fuse_img_out_c)
+            self.logit_img = LogitImg(fuse_img_out_c)
 
             self.center = nn.Sequential(
                 ConvBlock(x.shape[1], x.shape[1], kernel_size=3, padding=1),
@@ -211,7 +212,8 @@ class Dynamic(nn.Module):
             x = self.center(x)
 
             upmodel = OrderedDict()
-            final_c = 0
+            fuse_pixel_in_c = 0
+            fuse_pixel_out_c = 64
             decoder_count = 0
             for i in reversed(range(len(self.features))):
                 feature = self.features[i]
@@ -222,9 +224,11 @@ class Dynamic(nn.Module):
                     block.eval()
                     x = block(feature, x)
                     upmodel[f'decoder_layer{decoder_count}'] =block
-                    final_c += x.shape[1]
+                    fuse_pixel_in_c += x.shape[1]
                 else:
                     self.handles[i].remove()
             self.features = []
             self.upmodel = nn.Sequential(upmodel)
-            self.final = Final(final_c)
+            self.fuse_pixel = FusePixel(fuse_pixel_in_c, fuse_pixel_out_c)
+            self.logit_pixel = LogitPixel(fuse_pixel_out_c, writer=self.writer)
+            self.fuse = Fuse(fuse_pixel_out_c + fuse_img_out_c)

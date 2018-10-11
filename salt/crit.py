@@ -13,15 +13,16 @@ class Crit:
         target: mask
         """
         bs = target.shape[0]
-        logit, img_logit = predict
+        logit, logit_pixel, logit_img = predict
         t_has_salt_index = target.byte().view(bs, -1).any(dim=1)
-        img_loss = self.bce(img_logit, t_has_salt_index.float())
-        logit_loss = 0
+        logit_img_loss = self.logit_img_loss(logit_img, t_has_salt_index.float())
+        logit_pixel_loss = 0
+        has_salt_sum = t_has_salt_index.sum()
         if t_has_salt_index.any():
-            has_salt_sum = t_has_salt_index.sum()
             weight = has_salt_sum.float() / bs
-            logit_loss = self.lovasz(logit[t_has_salt_index], target[t_has_salt_index]) * weight
-        return logit_loss * self.weight[0] + img_loss * self.weight[1]
+            logit_pixel_loss = self.lovasz(logit_pixel[t_has_salt_index], target[t_has_salt_index]) * weight
+        logit_loss = self.lovasz(logit, target)
+        return logit_loss * self.weight[0] + logit_pixel_loss * self.weight[1] + logit_img_loss * self.weight[2]
 
 
 def get_weight(gt_sorted):
