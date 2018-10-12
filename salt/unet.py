@@ -32,8 +32,8 @@ def _percent(x):
 class Fuse(nn.Module):
     def __init__(self, in_c):
         super().__init__()
-        self.conv1 = ConvBlock(in_c, 64, kernel_size=3, padding=1)
-        self.conv2 = nn.Conv2d(64, 1, kernel_size=1)
+        self.conv1 = ConvBlock(in_c, in_c//2, kernel_size=1)
+        self.conv2 = nn.Conv2d(in_c//2, 1, kernel_size=1)
 
     def forward(self, x):
         x = self.conv1(x)
@@ -176,7 +176,7 @@ class Dynamic(nn.Module):
         fuse_img = self.fuse_img(x)
         logit_img = self.logit_img(fuse_img)
 
-        x = self.center(x)
+        # x = self.center(x)
 
         hyper_columns = []
         for i, (feature, block) in enumerate(zip(reversed(self.features), self.upmodel)):
@@ -205,11 +205,11 @@ class Dynamic(nn.Module):
             self.fuse_img = FuseImg(x.shape[1], fuse_img_out_c)
             self.logit_img = LogitImg(fuse_img_out_c)
 
-            self.center = nn.Sequential(
-                ConvBlock(x.shape[1], x.shape[1], kernel_size=3, padding=1),
-                ConvBlock(x.shape[1], x.shape[1]//2, kernel_size=3, padding=1)
-            ).cuda()
-            x = self.center(x)
+            # self.center = nn.Sequential(
+            #     ConvBlock(x.shape[1], x.shape[1], kernel_size=3, padding=1),
+            #     ConvBlock(x.shape[1], x.shape[1]//2, kernel_size=3, padding=1)
+            # ).cuda()
+            # x = self.center(x)
 
             upmodel = OrderedDict()
             fuse_pixel_in_c = 0
