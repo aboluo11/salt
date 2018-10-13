@@ -25,15 +25,26 @@ class Crit:
         return logit_loss * self.weight[0] + logit_pixel_loss * self.weight[1] + logit_img_loss * self.weight[2]
 
 
-def get_weight(gt_sorted):
+def get_weight(gt_sorted, error_sorted):
     gt_sorted = gt_sorted.byte()
     gts = gt_sorted.sum(dim=1, keepdim=True)
-    intersection = gts - gt_sorted.cumsum(1)
-    union = gts + (1 - gt_sorted).cumsum(1)
-    iou = intersection.float() / union.float()
-    delta = 1 - iou
-    delta[:, 1:] = delta[:, 1:] - delta[:, :-1]
-    return delta
+
+    weight = torch.zeros_like(gt_sorted, dtype=torch.float32)
+
+    empty_index = (gts.view(-1) == 0)
+    if empty_index.any():
+        error_sum = error_sorted.sum(dim=1, keepdim=True)
+        idx = empty_index * (error_sum.view(-1) != 0)
+        weight[idx] = error_sorted[idx]/error_sum[idx]
+
+    non_empty_index = ~empty_index
+    if non_empty_index.any():
+        intersection = gts[non_empty_index] - gt_sorted[non_empty_index].cumsum(1)
+        union = gts[non_empty_index] + (1 - gt_sorted[non_empty_index]).cumsum(1)
+        iou = intersection.float() / union.float()
+        delta = 1 - iou
+        weight[non_empty_index, 1:] = delta[:, 1:] - delta[:, :-1]
+    return weight
 
 
 def lovasz(logit, target):
@@ -44,6 +55,6 @@ def lovasz(logit, target):
     error = torch.relu(1 - logit * sign)
     error_sorted, perm = torch.sort(error, dim=-1, descending=True)
     gt_sorted = target.gather(dim=1, index=perm)
-    weight = get_weight(gt_sorted)
+    weight = get_weight(gt_sorted, error_sorted)
     delta_average = torch.bmm(error_sorted.view(bs, 1, -1), weight.view(bs, -1, 1))
     return delta_average.mean()

@@ -23,10 +23,20 @@ def create_kfold_csv(n_fold=5):
     salt_coverage['fold'] = (list(range(n_fold)) * salt_coverage.shape[0])[:salt_coverage.shape[0]]
     fold_csv_to_trn_val(salt_coverage, 'inputs/all', n_fold)
 
-def create_sample_kfold_csv(n_fold=5):
-    sample = pd.read_csv('inputs/all/0/val.csv')
+def create_kfold_csv_depth(out_name, n_fold=5):
+    train = pd.read_csv('inputs/train.csv')
+    depth = pd.read_csv('inputs/depths.csv')
+    depth = depth.loc[depth['id'].isin(train['id'])]
+    depth['id'] = depth['id'] + '.png'
+    depth.sort_values('z', inplace=True)
+    depth.drop('z', axis=1, inplace=True)
+    depth['fold'] = (list(range(n_fold)) * depth.shape[0])[:depth.shape[0]]
+    fold_csv_to_trn_val(depth, f'inputs/{out_name}', n_fold)
+
+def create_sample_kfold_csv(in_name, out_name, n_fold=5):
+    sample = pd.read_csv(f'inputs/{in_name}/0/val.csv')
     sample['fold'] = (list(range(n_fold)) * sample.shape[0])[:sample.shape[0]]
-    fold_csv_to_trn_val(sample, f'inputs/sample', n_fold)
+    fold_csv_to_trn_val(sample, f'inputs/{out_name}', n_fold)
 
 def cal_salt_coverage(mask):
     mask_pixels = mask.sum()
