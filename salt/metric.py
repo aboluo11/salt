@@ -1,3 +1,4 @@
+
 from .predict import *
 
 
@@ -6,36 +7,89 @@ class Score:
     support tta
     """
 
-    def __init__(self, writer):
+    def __init__(self, reverse_ttas):
         self.scores = []
-        self.writer = writer
+        self.reverse_ttas = reverse_ttas
 
-    def __call__(self, predicts, target: torch.Tensor, reverse_tta: Optional[List] = None):
+    def __call__(self, predicts, target: torch.Tensor):
         """
         :param predicts: list of predicts or predict if no tta.
             predict: tta [mask, has_salt], all items are logit tensor
         :param target: mask, logit tensor
-        :param reverse_tta: list of function apply to predicted mask in predict or None.
-            If None: no tta.
         calculate a batch of predicts' scores, shape: [batch_size], and add it to self.scores
         """
-        if not reverse_tta:
-            predicts = [predicts]
-            reverse_tta = [None]
-        p_mask = tta_mean_predict(predicts, reverse_tta)
+        p_mask = tta_mean_predict(predicts, self.reverse_ttas)
         s = get_score(p_mask, target)
         self.scores.append(s)
 
-    def res(self, epoch) -> float:
+    def res(self) -> float:
         """
         :return:  batches of predicts' score, reduced
         """
         res = torch.cat(self.scores).mean().item()
         self.scores = []
-        if self.writer:
-            self.writer.add_scalar("score", res, epoch)
         return res
 
+class EmptyTP:
+    def __init__(self, reverse_ttas):
+        self.reverse_ttas = reverse_ttas
+        self.tp = 0
+        self.positive = 0
+
+    def __call__(self, predicts, target):
+        p_logit = tta_mean_predict(predicts, self.reverse_ttas)
+        p_no_salt_index = ~((p_logit>0.5).view(p_logit.shape[0], -1).any(dim=1))
+        t_no_salt_index = ~(target.byte().view(target.shape[0], -1).any(dim=1))
+        tp = (p_no_salt_index * t_no_salt_index).float().sum()
+        positive = t_no_salt_index.float().sum()
+        self.tp += tp
+        self.positive += positive
+
+    def res(self):
+        res = (self.tp / self.positive).item()
+        self.tp = 0
+        self.positive = 0
+        return res
+
+
+class EmptyFP:
+    def __init__(self, reverse_ttas):
+        self.reverse_ttas = reverse_ttas
+        self.fp = 0
+        self.negative = 0
+
+    def __call__(self, predicts, target):
+        p_logit = tta_mean_predict(predicts, self.reverse_ttas)
+        p_no_salt_index = ~((p_logit>0.5).view(p_logit.shape[0], -1).any(dim=1))
+        t_has_salt_index = target.byte().view(target.shape[0], -1).any(dim=1)
+        fp = (p_no_salt_index * t_has_salt_index).float().sum()
+        negative = t_has_salt_index.float().sum()
+        self.fp += fp
+        self.negative += negative
+
+    def res(self):
+        res = (self.fp / self.negative).item()
+        self.fp = 0
+        self.negative = 0
+        return res
+
+
+class HasSaltScore:
+    def __init__(self, reverse_ttas):
+        self.reverse_ttas = reverse_ttas
+        self.scores = []
+
+    def __call__(self, predicts, target):
+        p_logit = tta_mean_predict(predicts, self.reverse_ttas)
+        t_has_salt_index = target.byte().view(target.shape[0], -1).any(dim=1)
+        if t_has_salt_index.any():
+            s = get_score(p_logit[t_has_salt_index], target[t_has_salt_index])
+            self.scores.append(s)
+
+    def res(self):
+        res = torch.cat(self.scores).mean().item()
+        self.scores = []
+        return res
 
 def iou_to_score(iou):
     shape = iou.shape
@@ -71,7 +125,6 @@ def val_score(models: List, val_dl: DataLoader, reverse_tta: List) -> float:
             for model in models:
                 predicts = []
                 for img, mask in tta_batch:
-                    img, mask = T(img), T(mask)
                     predict = model(img)
                     predicts.append(predict)
                 p_mask = tta_mean_predict(predicts, reverse_tta)

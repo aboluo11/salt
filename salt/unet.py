@@ -1,12 +1,11 @@
-from lightai.imps import *
+from lightai.core import *
 from tensorboardX import SummaryWriter
-from .log import *
 from .resnet import *
 
 
 def _leaves(model):
     res = []
-    childs = children(model)
+    childs = list(model.children())
     if len(childs) == 0:
         return [model]
     for key, module in model._modules.items():
@@ -78,21 +77,15 @@ class UnetBlock(nn.Module):
         self.conv1 = nn.Conv2d(feature_c + x_c, out_c, kernel_size=3, stride=1, padding=1)
         self.bn1 = nn.BatchNorm2d(feature_c + x_c)
         self.bn2 = nn.BatchNorm2d(out_c)
-        # self.drop = nn.Dropout2d(drop)
         self.writer = writer
         self.layer_num = layer_num
-        self.sc = SCBlock(out_c)
         self.tag = f'decode_layer{layer_num}'
 
     def forward(self, feature, x, global_step=None):
         out = self.upconv1(x, output_size=feature.shape)
         out = self.bn1(torch.relu(torch.cat([out, feature], dim=1)))
-        # out = self.drop(out)
         out = self.conv1(out)
         out = self.bn2(torch.relu(out))
-
-        # out = self.sc(out)
-
         return out
 
 
@@ -144,9 +137,6 @@ class Dynamic(nn.Module):
         res[has_salt_index] = x
 
         return res, has_salt
-
-    def get_layer_groups(self):
-        return [[self.encoder], [self.upmodel, self.final_conv]]
 
     def dummy_forward(self, x, drop):
         with torch.no_grad():

@@ -1,4 +1,4 @@
-from lightai.imps import *
+from lightai.core import *
 
 
 def fold_csv_to_trn_val(csv, path, n_fold):
