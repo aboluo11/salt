@@ -26,7 +26,7 @@ def _percent(x):
     return (a/b).item()
 
 class ConvBlock(nn.Module):
-    def __init__(self, in_c, out_c, kernel_size, stride, padding=0):
+    def __init__(self, in_c, out_c, kernel_size, stride=1, padding=0):
         super().__init__()
         self.conv = nn.Conv2d(in_c, out_c, kernel_size, stride=stride, padding=padding, bias=False)
         self.bn = nn.BatchNorm2d(out_c)
@@ -74,7 +74,8 @@ class UnetBlock(nn.Module):
         """
         super().__init__()
         self.upconv1 = nn.ConvTranspose2d(x_c, x_c, kernel_size=3, stride=2, padding=1, bias=False)
-        self.conv1 = ConvBlock(feature_c + x_c, out_c, kernel_size=3, stride=1, padding=1)
+        self.conv1 = ConvBlock(feature_c + x_c, feature_c, kernel_size=3, padding=1)
+        self.conv2 = ConvBlock(feature_c, out_c, kernel_size=3, padding=1 )
         self.bn1 = nn.BatchNorm2d(x_c)
         self.writer = writer
         self.layer_num = layer_num
@@ -85,6 +86,7 @@ class UnetBlock(nn.Module):
         out = torch.relu(self.bn1(out))
         out = torch.cat([out, feature], dim=1)
         out = self.conv1(out)
+        out = self.conv2(out)
         return out
 
 
