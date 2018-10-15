@@ -1,12 +1,14 @@
 from lightai.core import *
+from .predict import *
 
 
 class Evaluator:
-    def __init__(self, val_dl, metrics: List, model, loss_fn):
+    def __init__(self, val_dl, metrics: List, model, loss_fn, reverse_ttas):
         self.val_dl = val_dl
         self.metrics = metrics
         self.model = model
         self.loss_fn = loss_fn
+        self.reverse_ttas = reverse_ttas
 
     def __call__(self):
         losses, bses = [], []
@@ -21,8 +23,9 @@ class Evaluator:
                         loss = self.loss_fn(predict, target)
                         losses.append(loss.item())
                         bses.append(len(target))
+                predict = tta_mean_predict(predicts, self.reverse_ttas)
                 for metric in self.metrics:
-                    metric(predicts, target)
+                    metric(predict, target)
         loss = np.average(losses, weights=bses)
         eval_res = [loss] + [metric.res() for metric in self.metrics]
         return eval_res
