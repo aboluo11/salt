@@ -73,19 +73,18 @@ class UnetBlock(nn.Module):
         output channel size: out_c
         """
         super().__init__()
-        self.upconv1 = nn.ConvTranspose2d(x_c, x_c, kernel_size=3, stride=2, padding=1)
-        self.conv1 = nn.Conv2d(feature_c + x_c, out_c, kernel_size=3, stride=1, padding=1)
-        self.bn1 = nn.BatchNorm2d(feature_c + x_c)
-        self.bn2 = nn.BatchNorm2d(out_c)
+        self.upconv1 = nn.ConvTranspose2d(x_c, x_c, kernel_size=3, stride=2, padding=1, bias=False)
+        self.conv1 = ConvBlock(feature_c + x_c, out_c, kernel_size=3, stride=1, padding=1)
+        self.bn1 = nn.BatchNorm2d(x_c)
         self.writer = writer
         self.layer_num = layer_num
         self.tag = f'decode_layer{layer_num}'
 
     def forward(self, feature, x, global_step=None):
         out = self.upconv1(x, output_size=feature.shape)
-        out = self.bn1(torch.relu(torch.cat([out, feature], dim=1)))
+        out = torch.relu(self.bn1(out))
+        out = torch.cat([out, feature], dim=1)
         out = self.conv1(out)
-        out = self.bn2(torch.relu(out))
         return out
 
 
@@ -102,7 +101,7 @@ class Dynamic(nn.Module):
         self.encoder = nn.Sequential(self.encoder1, self.encoder2, self.encoder3, self.encoder4, self.encoder5)
         self.features = []
         self.handles = []
-        for m in _leaves(self.encoder):
+        for m in self.encoder.children():
             handle = m.register_forward_pre_hook(lambda module, input: self.features.append(input[0]))
             self.handles.append(handle)
         self.writer = writer
