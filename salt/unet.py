@@ -74,7 +74,7 @@ class UnetBlock(nn.Module):
         """
         super().__init__()
         self.upconv1 = nn.ConvTranspose2d(x_c, x_c, kernel_size=3, stride=2, padding=1, bias=False)
-        self.conv1 = ConvBlock(feature_c + x_c, feature_c, kernel_size=3, padding=1)
+        self.conv1 = ConvBlock(feature_c, feature_c, kernel_size=3, padding=1)
         self.conv2 = ConvBlock(feature_c, out_c, kernel_size=3, padding=1 )
         self.bn1 = nn.BatchNorm2d(x_c)
         self.writer = writer
@@ -82,10 +82,10 @@ class UnetBlock(nn.Module):
         self.tag = f'decode_layer{layer_num}'
 
     def forward(self, feature, x, global_step=None):
-        out = self.upconv1(x, output_size=feature.shape)
-        out = torch.relu(self.bn1(out))
-        out = torch.cat([out, feature], dim=1)
-        out = self.conv1(out)
+        # out = self.upconv1(x, output_size=feature.shape)
+        # out = torch.relu(self.bn1(out))
+        # out = torch.cat([out, feature], dim=1)
+        out = self.conv1(feature)
         out = self.conv2(out)
         return out
 
