@@ -55,15 +55,22 @@ class FinalConv(nn.Module):
 class HasSalt(nn.Module):
     def __init__(self, in_c):
         super().__init__()
-        self.linear1 = nn.Linear(in_c, 256)
-        self.linear2 = nn.Linear(256, 1)
-        self.bn = nn.BatchNorm1d(256)
+        # self.linear1 = nn.Linear(in_c, 256)
+        # self.linear2 = nn.Linear(256, 1)
+        # self.bn = nn.BatchNorm1d(256)
+        self.pool = nn.AdaptiveAvgPool2d(1)
+        self.conv1 = ConvBlock(in_c, in_c//2, kernel_size=1)
+        self.conv2 = nn.Conv2d(in_c//2, 1, kernel_size=1)
 
     def forward(self, x):
-        x = x.view(x.shape[0], -1)
-        x = self.linear1(x)
-        x = self.bn(torch.relu(x))
-        x = self.linear2(x)
+        # x = x.view(x.shape[0], -1)
+        # x = self.linear1(x)
+        # x = self.bn(torch.relu(x))
+        # x = self.linear2(x)
+        # x = x.view(-1)
+        x = self.pool(x)
+        x = self.conv1(x)
+        x = self.conv2(x)
         x = x.view(-1)
         return x
 
@@ -143,7 +150,7 @@ class Dynamic(nn.Module):
         with torch.no_grad():
             self.encoder.eval()
             x = self.encoder(x)
-        self.has_salt = HasSalt(x.shape[1] * x.shape[2] * x.shape[3])
+        self.has_salt = HasSalt(x.shape[1])
         upmodel = OrderedDict()
         final_c = 0
         decoder_count = 0
