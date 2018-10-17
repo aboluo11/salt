@@ -33,7 +33,7 @@ def listify(x):
     else:
         return [x]
 
-def predict_test(models: List, bs, tta_tsfms: List = [None, hflip], reverse_tta: List = [None, hflip]):
+def predict_test(models, bs, tta_tsfms: List = [None, hflip], reverse_tta: List = [None, hflip]):
     """
     :param reverse_tta: apply to predicted mask
     """
