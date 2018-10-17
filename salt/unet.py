@@ -40,16 +40,15 @@ class ConvBlock(nn.Module):
 class FinalConv(nn.Module):
     def __init__(self, final_c, writer):
         super().__init__()
-        self.conv1 = nn.Conv2d(final_c, 64, kernel_size=3, padding=1)
-        self.conv2 = nn.Conv2d(64, 1, kernel_size=1)
-        self.bn = nn.BatchNorm2d(64)
+        self.conv1 = ConvBlock(final_c, final_c, kernel_size=3, padding=1)
+        self.conv2 = ConvBlock(final_c, 64, kernel_size=3, padding=1)
+        self.conv3 = nn.Conv2d(64, 1, kernel_size=1)
         self.writer = writer
 
     def forward(self, x, global_step=None):
         x = self.conv1(x)
-        x = torch.relu(x)
-        x = self.bn(x)
         x = self.conv2(x)
+        x = self.conv3(x)
         return x
 
 class HasSalt(nn.Module):
@@ -80,10 +79,10 @@ class UnetBlock(nn.Module):
         output channel size: out_c
         """
         super().__init__()
-        self.upconv1 = nn.ConvTranspose2d(x_c, x_c, kernel_size=3, stride=2, padding=1, bias=False)
+        # self.upconv1 = nn.ConvTranspose2d(x_c, x_c, kernel_size=3, stride=2, padding=1, bias=False)
         self.conv1 = ConvBlock(feature_c, feature_c, kernel_size=3, padding=1)
         self.conv2 = ConvBlock(feature_c, out_c, kernel_size=3, padding=1 )
-        self.bn1 = nn.BatchNorm2d(x_c)
+        # self.bn1 = nn.BatchNorm2d(x_c)
         self.writer = writer
         self.layer_num = layer_num
         self.tag = f'decode_layer{layer_num}'
