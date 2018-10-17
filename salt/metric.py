@@ -108,6 +108,7 @@ def val_score(models: List, val_dl: DataLoader, reverse_tta: List) -> float:
     :param val_dl: each batch: tta list of [img, mask]
     :return: models' score for val_dl
     """
+    models = listify(models)
     scores = []
     with torch.no_grad():
         for model in models:

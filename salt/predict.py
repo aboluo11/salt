@@ -24,12 +24,22 @@ def tta_mean_predict(predicts: List, reverse_tta: List):
     return torch.stack(p_masks).mean(dim=0)
 
 
+def listify(x):
+    if isinstance(x, (list, tuple)):
+        res = []
+        for each in x:
+            res.extend(_listify(each))
+        return res
+    else:
+        return [x]
+
 def predict_test(models: List, bs, tta_tsfms: List = [None, hflip], reverse_tta: List = [None, hflip]):
     """
     :param reverse_tta: apply to predicted mask
     """
     submit = pd.read_csv('inputs/sample_submission.csv')
     test_dl = get_test_data(tta_tsfms, bs)
+    models = _listify(models)
     for model in models:
         model.eval()
     with torch.no_grad():
