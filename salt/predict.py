@@ -39,7 +39,7 @@ def predict_test(models: List, bs, tta_tsfms: List = [None, hflip], reverse_tta:
     """
     submit = pd.read_csv('inputs/sample_submission.csv')
     test_dl = get_test_data(tta_tsfms, bs)
-    models = _listify(models)
+    models = listify(models)
     for model in models:
         model.eval()
     with torch.no_grad():
