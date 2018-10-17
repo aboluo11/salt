@@ -28,7 +28,7 @@ def listify(x):
     if isinstance(x, (list, tuple)):
         res = []
         for each in x:
-            res.extend(_listify(each))
+            res.extend(listify(each))
         return res
     else:
         return [x]
