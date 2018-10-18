@@ -15,7 +15,7 @@ def fold_csv_to_trn_val(csv, path, n_fold):
 
 
 def create_kfold_csv(n_fold=5):
-    img_paths = chain(Path('inputs/train/images').iterdir(), Path('inputs/val/images').iterdir())
+    img_paths = Path('inputs/gray/train/images').iterdir()
     img_names = [p.parts[-1].split('.')[0] for p in img_paths]
     depth = pd.read_csv('inputs/depths.csv')
     depth = depth.loc[depth['id'].isin(img_names)]
