@@ -40,13 +40,13 @@ class ConvBlock(nn.Module):
 class FinalConv(nn.Module):
     def __init__(self, final_c, writer):
         super().__init__()
-        self.conv1 = ConvBlock(final_c, final_c, kernel_size=3, padding=1)
+        # self.conv1 = ConvBlock(final_c, final_c, kernel_size=3, padding=1)
         self.conv2 = ConvBlock(final_c, 64, kernel_size=3, padding=1)
         self.conv3 = nn.Conv2d(64, 1, kernel_size=1)
         self.writer = writer
 
     def forward(self, x, global_step=None):
-        x = self.conv1(x)
+        # x = self.conv1(x)
         x = self.conv2(x)
         x = self.conv3(x)
         return x
